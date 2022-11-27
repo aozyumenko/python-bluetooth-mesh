@@ -77,6 +77,8 @@ class _AccessMessage(Construct):
         LightLightnessSetupOpcode: LightLightnessSetupMessage,
         LightCTLOpcode: LightCTLMessage,
         LightCTLSetupOpcode: LightCTLSetupMessage,
+        LightHSLOpcode: LightHSLMessage,
+        LightHSLSetupOpcode: LightHSLSetupMessage,
         HealthOpcode: HealthMessage,
         NetworkDiagnosticServerOpcode: NetworkDiagnosticServerMessage,
         NetworkDiagnosticSetupServerOpcode: NetworkDiagnosticSetupServerMessage,
@@ -124,7 +126,7 @@ class _AccessMessage(Construct):
                 opcode, message = self._opcodes[opcode]
         except KeyError:
             Opcode()._build(opcode, stream, context, path)
-            stream_write(stream, obj["params"])
+            stream_write(stream, obj["params"], len(obj["params"]), None)
             return obj
 
         return message._build(obj, stream, context, path)
