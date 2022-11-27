@@ -24,6 +24,12 @@ from .generic.light.lightness import (
     LightLightnessSetupMessage,
     LightLightnessSetupOpcode,
 )
+from .generic.light.hsl import (
+    LightHSLMessage,
+    LightHSLOpcode,
+    LightHSLSetupMessage,
+    LightHSLSetupOpcode,
+)
 from .generic.onoff import GenericOnOffMessage, GenericOnOffOpcode
 from .generic.dtt import GenericDTTMessage, GenericDTTOpcode
 from .generic.ponoff import (
