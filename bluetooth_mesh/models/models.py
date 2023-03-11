@@ -1826,6 +1826,7 @@ class SceneClient(Model):
 class GenericLevelClient(Model):
     MODEL_ID = (None, 0x1003)
     OPCODES = {
+        GenericLevelOpcode.GENERIC_LEVEL_STATUS,
         GenericLevelOpcode.GENERIC_LEVEL_GET,
         GenericLevelOpcode.GENERIC_LEVEL_SET,
         GenericLevelOpcode.GENERIC_LEVEL_SET_UNACKNOWLEDGED,
@@ -1837,14 +1838,63 @@ class GenericLevelClient(Model):
     PUBLISH = True
     SUBSCRIBE = True
 
+    async def set_level(
+        self,
+        destination: int,
+        app_index: int,
+        level: int,
+        delay: float = 0.0,
+        transition_time: float = 0,
+        send_interval: float = 0.07,
+        timeout: Optional[float] = None,
+    ):
+        status_opcode = GenericLevelOpcode.GENERIC_LEVEL_STATUS
+        status = self.expect_app(
+            source=destination,
+            app_index=app_index,
+            destination=None,
+            opcode=status_opcode,
+            params=dict(),
+        )
+
+        tid = self.tid()
+        current_delay = delay
+
+        async def request():
+            nonlocal current_delay
+            ret = self.send_app(
+                destination,
+                app_index=app_index,
+                opcode=GenericLevelOpcode.GENERIC_LEVEL_SET,
+                params=dict(
+                    level=level,
+                    tid=tid,
+                    transition_time=transition_time,
+                    delay=current_delay,
+                ),
+            )
+            current_delay = max(0.0, current_delay - send_interval)
+
+            return await ret
+
+        status = await self.query(
+            request,
+            status,
+            send_interval=send_interval,
+            timeout=timeout or 1
+        )
+
+        return status[status_opcode.name.lower()]
+
+
     async def set_level_unack(
         self,
         destination: int,
         app_index: int,
         level: int,
-        delay: float = 0.5,
-        send_interval: float = 0.07,
+        delay: float = 0.0,
         transition_time: float = 0,
+        send_interval: float = 0.07,
         retransmissions: int = 6,
     ):
         tid = self.tid()
@@ -1859,8 +1909,8 @@ class GenericLevelClient(Model):
                 params=dict(
                     level=level,
                     tid=tid,
-                    transition_time=transition_time,
                     delay=current_delay,
+                    transition_time=transition_time,
                 ),
             )
             current_delay = max(0.0, current_delay - send_interval)
@@ -1872,6 +1922,149 @@ class GenericLevelClient(Model):
             retransmissions=retransmissions,
             send_interval=send_interval,
         )
+
+
+    async def delta_set(
+        self,
+        destination: int,
+        app_index: int,
+        delta_level: int,
+        delay: float = 0.0,
+        transition_time: float = 0,
+        send_interval: float = 0.07,
+        timeout: Optional[float] = None,
+    ):
+        status_opcode = GenericLevelOpcode.GENERIC_LEVEL_STATUS
+        status = self.expect_app(
+            source=destination,
+            app_index=app_index,
+            destination=None,
+            opcode=status_opcode,
+            params=dict(),
+        )
+
+        tid = self.tid()
+        current_delay = delay
+
+        async def request():
+            nonlocal current_delay
+            ret = self.send_app(
+                destination,
+                app_index=app_index,
+                opcode=GenericLevelOpcode.GENERIC_DELTA_SET,
+                params=dict(
+                    delta_level=delta_level,
+                    tid=tid,
+                    transition_time=transition_time,
+                    delay=current_delay,
+                ),
+            )
+            current_delay = max(0.0, current_delay - send_interval)
+
+            return await ret
+
+        status = await self.query(
+            request,
+            status,
+            send_interval=send_interval,
+            timeout=timeout or 1
+        )
+
+        return status[status_opcode.name.lower()]
+
+
+    async def move_set(
+        self,
+        destination: int,
+        app_index: int,
+        delta_level: int,
+        delay: float = 0.0,
+        transition_time: float = 0,
+        send_interval: float = 0.07,
+        timeout: Optional[float] = None,
+    ):
+        status_opcode = GenericLevelOpcode.GENERIC_LEVEL_STATUS
+        status = self.expect_app(
+            source=destination,
+            app_index=app_index,
+            destination=None,
+            opcode=status_opcode,
+            params=dict(),
+        )
+
+        tid = self.tid()
+        current_delay = delay
+
+        async def request():
+            nonlocal current_delay
+            ret = self.send_app(
+                destination,
+                app_index=app_index,
+                opcode=GenericLevelOpcode.GENERIC_MOVE_SET,
+                params=dict(
+                    delta_level=delta_level,
+                    tid=tid,
+                    transition_time=transition_time,
+                    delay=current_delay,
+                ),
+            )
+            current_delay = max(0.0, current_delay - send_interval)
+
+            return await ret
+
+        status = await self.query(
+            request,
+            status,
+            send_interval=send_interval,
+            timeout=timeout or 1
+        )
+
+        return status[status_opcode.name.lower()]
+
+
+    async def get_level_status(
+        self,
+        nodes: Sequence[int],
+        app_index: int,
+        send_interval: float = 0.1,
+        timeout: Optional[float] = None,
+    ) -> Dict[int, Optional[Any]]:
+        requests = {
+            node: partial(
+                self.send_app,
+                node,
+                app_index=app_index,
+                opcode=GenericLevelOpcode.GENERIC_LEVEL_GET,
+                params=dict(),
+            )
+            for node in nodes
+        }
+
+        status_opcode = GenericLevelOpcode.GENERIC_LEVEL_STATUS
+        statuses = {
+            node: self.expect_app(
+                node,
+                app_index=app_index,
+                destination=None,
+                opcode=status_opcode,
+                params=dict(),
+            )
+            for node in nodes
+        }
+
+        results = await self.bulk_query(
+            requests,
+            statuses,
+            send_interval=send_interval,
+            timeout=timeout or len(nodes) * 0.5,
+        )
+
+        return {
+            node: None
+            if isinstance(result, Exception)
+            else result[status_opcode.name.lower()]
+            for node, result in results.items()
+        }
 
 
 class LightLightnessServer(Model):
@@ -2069,7 +2262,7 @@ class LightLightnessClient(Model):
         destination: int,
         app_index: int,
         lightness: int,
-        transition_time: float,
+        transition_time: float = 0,
         *,
         delay: float = 0.5,
         retransmissions: int = 6,
@@ -2104,18 +2297,24 @@ class LightLightnessClient(Model):
         nodes: Sequence[int],
         lightness: int,
         app_index: int,
+        transition_time: float = 0,
         *,
         delay: float = 0.5,
         send_interval: float = 0.1,
         timeout: Optional[float] = None,
     ) -> Dict[int, Optional[Any]]:
+        print("transition_time2=%f" % transition_time)
         requests = {
             node: partial(
                 self.send_app,
                 node,
                 app_index=app_index,
                 opcode=LightLightnessOpcode.LIGHT_LIGHTNESS_SET,
-                params=dict(lightness=lightness, tid=self.tid()),
+                params=dict(
+                    lightness=lightness,
+                    tid=self.tid(),
+                    delay=0,
+                    transition_time=transition_time),
             )
             for node in nodes
         }
@@ -2294,7 +2493,7 @@ class LightCTLClient(Model):
         statuses = {
             node: self.expect_app(
                 node,
-                app_index=0,
+                app_index=app_index,
                 destination=None,
                 opcode=status_opcode,
                 params=dict(),
@@ -2322,6 +2521,7 @@ class LightCTLClient(Model):
         app_index: int,
         *,
         ctl_temperature: int,
+        transition_time: float = 0,
         send_interval: float = 0.1,
         timeout: Optional[float] = None,
     ) -> Dict[int, Optional[Any]]:
@@ -2332,7 +2532,11 @@ class LightCTLClient(Model):
                 app_index=app_index,
                 opcode=LightCTLOpcode.LIGHT_CTL_TEMPERATURE_SET,
                 params=dict(
-                    ctl_temperature=ctl_temperature, ctl_delta_uv=0, tid=self.tid()
+                    ctl_temperature=ctl_temperature,
+                    ctl_delta_uv=0,
+                    tid=self.tid(),
+                    delay=0,
+                    transition_time=transition_time
                 ),
             )
             for node in nodes
@@ -2343,7 +2547,7 @@ class LightCTLClient(Model):
         statuses = {
             node: self.expect_app(
                 node,
-                app_index=0,
+                app_index=app_index,
                 destination=None,
                 opcode=status_opcode,
                 params=dict(),
@@ -2670,6 +2874,103 @@ class LightHSLClient(Model):
                 opcode=LightHSLOpcode.LIGHT_HSL_HUE_SET,
                 params=dict(
                     hue=hue,
+                    tid=tid,
+                    transition_time=transition_time,
+                    delay=current_delay,
+                ),
+            )
+            current_delay = max(0.0, current_delay - send_interval)
+
+            return await ret
+
+        result = await self.query(
+            request,
+            status,
+            send_interval=send_interval,
+            timeout=timeout or 0.5,
+        )
+
+        return (None if isinstance(result, Exception)
+            else result[status_opcode.name.lower()])
+
+    async def get_saturation(
+        self,
+        nodes: Sequence[int],
+        app_index: int,
+        *,
+        send_interval: float = 0.1,
+        timeout: Optional[float] = None,
+    ) -> Dict[int, Optional[Any]]:
+        requests = {
+            node: partial(
+                self.send_app,
+                node,
+                app_index=app_index,
+                opcode=LightHSLOpcode.LIGHT_HSL_SATURATION_GET,
+                params=dict(),
+            )
+            for node in nodes
+        }
+
+        status_opcode = LightHSLOpcode.LIGHT_HSL_SATURATION_STATUS
+
+        statuses = {
+            node: self.expect_app(
+                node,
+                app_index=app_index,
+                destination=None,
+                opcode=status_opcode,
+                params=dict(),
+            )
+            for node in nodes
+        }
+
+        results = await self.bulk_query(
+            requests,
+            statuses,
+            send_interval=send_interval,
+            timeout=timeout or len(nodes) * 0.5,
+        )
+
+        return {
+            node: None
+            if isinstance(result, Exception)
+            else result[status_opcode.name.lower()]
+            for node, result in results.items()
+        }
+
+    async def set_saturation(
+        self,
+        destination: int,
+        app_index: int,
+        saturation: int,
+        *,
+        delay: float = 0,
+        transition_time: float = 0,
+        send_interval: float = 0.1,
+        timeout: Optional[float] = None,
+    ) -> Dict[int, Optional[Any]]:
+        current_delay = delay
+        tid = self.tid()
+
+        status_opcode = LightHSLOpcode.LIGHT_HSL_SATURATION_STATUS
+
+        status = self.expect_app(
+            destination,
+            app_index=app_index,
+            destination=None,
+            opcode=status_opcode,
+            params=dict(),
+        )
+
+        async def request():
+            nonlocal current_delay
+            ret = self.send_app(
+                destination,
+                app_index=app_index,
+                opcode=LightHSLOpcode.LIGHT_HSL_SATURATION_SET,
+                params=dict(
+                    saturation=saturation,
                     tid=tid,
                     transition_time=transition_time,
                     delay=current_delay,
