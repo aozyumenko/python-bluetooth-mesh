@@ -40,6 +40,9 @@ from typing import (
 )
 from uuid import UUID
 from random import randrange
+from functools import partial
+from enum import IntEnum
+
 
 from bluetooth_mesh.messages import AccessMessage
 from bluetooth_mesh.utils import (
@@ -553,6 +556,159 @@ class Model:
         """
 
         return await self.element.application.bind_app_key(app_key_index, model=self)
+
+
+    # implementation of simple client *get command
+    async def client_simple_get(
+        self,
+        nodes: Sequence[int],
+        app_index: int,
+        request_opcode: IntEnum,
+        status_opcode: IntEnum,
+        *,
+        send_interval: Optional[float] = None,
+        timeout: Optional[float] = None
+    ) -> Dict[int, Optional[Any]]:
+        requests = {
+            node: partial(
+                self.send_app,
+                destination=node,
+                app_index=app_index,
+                opcode=request_opcode,
+                params=dict(),
+            )
+            for node in nodes
+        }
+
+        statuses = {
+            node: self.expect_app(
+                source=node,
+                app_index=app_index,
+                destination=None,
+                opcode=status_opcode,
+                params=dict(),
+            )
+            for node in nodes
+        }
+
+        results = await self.bulk_query(
+            requests,
+            statuses,
+            send_interval=send_interval,
+            timeout=timeout,
+        )
+
+        return {
+            node: None if isinstance(result, Exception)
+                    or not hasattr(result, '__getitem__')
+                else result[status_opcode.name.lower()]
+            for node, result in results.items()
+        }
+
+    # implementation of simple client *set command
+    async def client_simple_set(
+        self,
+        nodes: Sequence[int],
+        app_index: int,
+        request_opcode: IntEnum,
+        status_opcode: IntEnum,
+        params: dict,
+        *,
+        send_interval: Optional[float] = None,
+        timeout: Optional[float] = None,
+    ) -> Dict[int, Optional[Any]]:
+        requests = {
+            node: partial(
+                self.send_app,
+                destination=node,
+                app_index=app_index,
+                opcode=request_opcode,
+                params=params,
+            )
+            for node in nodes
+        }
+
+        statuses = {
+            node: self.expect_app(
+                source=node,
+                app_index=app_index,
+                destination=None,
+                opcode=status_opcode,
+                params=dict(),
+            )
+            for node in nodes
+        }
+
+        results = await self.bulk_query(
+            requests,
+            statuses,
+            send_interval=send_interval,
+            timeout=timeout,
+        )
+
+        return {
+            node: None if isinstance(result, Exception)
+                    or not hasattr(result, '__getitem__')
+                else result[status_opcode.name.lower()]
+            for node, result in results.items()
+        }
+
+    async def client_simple_set_unack(
+        self,
+        destination: int,
+        app_index: int,
+        request_opcode: IntEnum,
+        params: dict,
+        *,
+        retransmissions: Optional[int] = None,
+        send_interval: Optional[float] = None
+    ) -> None:
+        async def request():
+            ret = self.send_app(
+                destination,
+                app_index=app_index,
+                opcode=request_opcode,
+                params=params,
+            )
+            return await ret
+
+        await self.repeat(
+            request,
+            retransmissions=retransmissions,
+            send_interval=send_interval,
+        )
+
+
+    # implementation of client *set_unack command with delay argument
+    async def client_delay_set_unack(
+        self,
+        destination: int,
+        app_index: int,
+        request_opcode: IntEnum,
+        params: dict,
+        *,
+        delay: Optional[float] = None,
+        retransmissions: Optional[int] = None,
+        send_interval: Optional[float] = None
+    ) -> None:
+        remaining_delay = delay or self.UNACK_DELAY
+
+        async def request():
+            nonlocal remaining_delay
+            ret = self.send_app(
+                destination=destination,
+                app_index=app_index,
+                opcode=request_opcode,
+                params=params | dict(delay=remaining_delay),
+            )
+            remaining_delay = max(0.0, remaining_delay - (send_interval or self.UNACK_SEND_INTERVAL))
+            return await ret
+
+        await self.repeat(
+            request,
+            retransmissions=retransmissions,
+            send_interval=send_interval
+        )
 
 
 class ModelConfig:

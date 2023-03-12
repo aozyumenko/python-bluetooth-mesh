@@ -99,8 +99,6 @@ __all__ = [
     "SceneClient",
     "GenericLevelClient",
     "SensorClient",
-    "LightLightnessClient",
-    "LightLightnessServer",
     "LightCTLClient",
     "LightHSLClient",
     "LightHSLServer",
