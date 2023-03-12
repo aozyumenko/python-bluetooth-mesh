@@ -65,6 +65,11 @@ class Model:
     OPCODES = []  # type: List[int]
     PUBLISH = False  # type: bool
     SUBSCRIBE = False  # type: bool
+    TIMEOUT = 0.5  # type: float
+    SEND_INTERVAL = 0.1  # type: float
+    UNACK_DELAY = 0.5  # type: float
+    UNACK_RETRANSMISSIONS = 6  # type: int
+    UNACK_SEND_INTERVAL = 0.075  # type: float
 
     def __init__(self, element: "Element"):
         self.__tid = randrange(100)
@@ -345,8 +350,8 @@ class Model:
         self,
         request: Callable[[], Awaitable],
         *,
-        retransmissions: int = 6,
-        send_interval: float = 0.05,
+        retransmissions: Optional[int] = None,
+        send_interval: Optional[float] = None
     ):
         """
         Application retransmissions
@@ -357,9 +362,9 @@ class Model:
 
         """
 
-        for _ in range(retransmissions):
+        for _ in range(retransmissions or self.UNACK_RETRANSMISSIONS):
             await request()
-            await asyncio.sleep(send_interval)
+            await asyncio.sleep(send_interval or self.UNACK_SEND_INTERVAL)
 
     async def query(
         self,
@@ -400,9 +405,9 @@ class Model:
         requests: Mapping[Hashable, Callable[[], Awaitable[None]]],
         statuses: Mapping[Hashable, asyncio.Future],
         *,
-        send_interval: float = 0.5,
+        send_interval: Optional[float] = None,
+        timeout: Optional[float] = None,
         progress_callback: Optional[ProgressCallback] = None,
-        timeout: float = 5.0,
     ) -> Mapping[Hashable, Any]:
         """
         Bulk query
@@ -410,8 +415,8 @@ class Model:
         :param requests:
         :param statuses:
         :param send_interval:
-        :param progress_callback:
         :param timeout:
+        :param progress_callback:
 
         """
 
@@ -421,12 +426,12 @@ class Model:
             while requests:
                 for request in list(requests.values()):
                     await request()
-                    await asyncio.sleep(send_interval)
+                    await asyncio.sleep(send_interval or self.SEND_INTERVAL)
 
         key_mapping = {status: key for key, status in statuses.items()}
 
         sender = asyncio.ensure_future(sender())
-        async for status, result in Gatherer(statuses.values(), timeout=timeout):
+        async for status, result in Gatherer(statuses.values(), timeout=timeout or len(requests) * self.TIMEOUT):
             key = key_mapping[status]
             requests.pop(key)
             done[key] = result
