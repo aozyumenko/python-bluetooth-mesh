@@ -2,3 +2,4 @@
 
 from .lightness import *
 from .ctl import *
+from .hsl import *

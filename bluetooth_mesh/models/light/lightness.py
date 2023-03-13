@@ -275,7 +275,7 @@ class LightLightnessClient(Model):
         send_interval: Optional[float] = None
     ) -> None:
         params=dict(lightness=lightness)
-        await self.client_delay_set_unack(
+        await self.client_simple_set_unack(
             destination=destination,
             app_index=app_index,
             request_opcode=LightLightnessSetupOpcode.LIGHT_LIGHTNESS_SETUP_DEFAULT_SET_UNACKNOWLEDGED,
@@ -338,7 +338,7 @@ class LightLightnessClient(Model):
             range_min=min_lightness,
             range_max=max_lightness,
         )
-        await self.client_delay_set_unack(
+        await self.client_simple_set_unack(
             destination=destination,
             app_index=app_index,
             request_opcode=LightLightnessSetupOpcode.LIGHT_LIGHTNESS_SETUP_RANGE_SET_UNACKNOWLEDGED,

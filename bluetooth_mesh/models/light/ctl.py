@@ -287,7 +287,6 @@ class LightCTLClient(Model):
         range_min: int,
         range_max: int,
         *,
-        delay: Optional[float] = None,
         retransmissions: Optional[int] = None,
         send_interval: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
@@ -354,7 +353,6 @@ class LightCTLClient(Model):
         ctl_temperature: int,
         ctl_delta_uv: int,
         *,
-        delay: Optional[float] = None,
         retransmissions: Optional[int] = None,
         send_interval: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
