@@ -1,7 +1,6 @@
 #
 # python-bluetooth-mesh - Bluetooth Mesh for Python
 #
-# Copyright (C) 2019  SILVAIR sp. z o.o.
 # Copyright (C) 2023  Alexander Ozumenko
 #
 #
@@ -21,36 +20,37 @@
 #
 #
 """
-This module implements GenericOnOff mesh model, both client and server
+This module implements Generic Default Transition Time mesh model, both client and server
 """
 from functools import partial
 from typing import Any, Dict, Iterable, NamedTuple, Optional, Sequence, Tuple, Type
 
+
 from bluetooth_mesh.models.base import Model
-from bluetooth_mesh.messages.generic.onoff import GenericOnOffOpcode
+from bluetooth_mesh.messages.generic.dtt import GenericDTTOpcode
 
 __all__ = [
-    "GenericOnOffServer",
-    "GenericOnOffClient",
+    "GenericDTTServer",
+    "GenericDTTClient",
 ]
 
 
-
-class GenericOnOffServer(Model):
-    MODEL_ID = (None, 0x1000)
+class GenericDTTServer(Model):
+    MODEL_ID = (None, 0x1004)
     OPCODES = {
-        GenericOnOffOpcode.GENERIC_ONOFF_GET,
-        GenericOnOffOpcode.GENERIC_ONOFF_SET,
-        GenericOnOffOpcode.GENERIC_ONOFF_SET_UNACKNOWLEDGED,
+        GenericDTTOpcode.GENERIC_DTT_GET,
+        GenericDTTOpcode.GENERIC_DTT_SET,
+        GenericDTTOpcode.GENERIC_DTT_SET_UNACKNOWLEDGED,
+        GenericDTTOpcode.GENERIC_DTT_STATUS,
     }
     PUBLISH = True
     SUBSCRIBE = True
 
 
-class GenericOnOffClient(Model):
-    MODEL_ID = (None, 0x1001)
+class GenericDTTClient(Model):
+    MODEL_ID = (None, 0x1005)
     OPCODES = {
-        GenericOnOffOpcode.GENERIC_ONOFF_STATUS,
+        GenericDTTOpcode.GENERIC_DTT_STATUS,
     }
     PUBLISH = True
     SUBSCRIBE = True
@@ -67,8 +67,8 @@ class GenericOnOffClient(Model):
         return await self.client_simple_get(
             nodes=nodes,
             app_index=app_index,
-            request_opcode=GenericOnOffOpcode.GENERIC_ONOFF_GET,
-            status_opcode=GenericOnOffOpcode.GENERIC_ONOFF_STATUS,
+            request_opcode=GenericDTTOpcode.GENERIC_DTT_GET,
+            status_opcode=GenericDTTOpcode.GENERIC_DTT_STATUS,
             send_interval=send_interval,
             timeout=timeout)
 
@@ -76,23 +76,19 @@ class GenericOnOffClient(Model):
         self,
         nodes: Sequence[int],
         app_index: int,
-        onoff: int,
-        transition_time: float = 0,
+        transition_time: float,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         params = dict(
-            onoff=onoff,
-            tid=self.tid(),
             transition_time=transition_time,
-            delay=0,
         )
         return await self.client_simple_set(
             nodes=nodes,
             app_index=app_index,
-            request_opcode=GenericOnOffOpcode.GENERIC_ONOFF_SET,
-            status_opcode=GenericOnOffOpcode.GENERIC_ONOFF_STATUS,
+            request_opcode=GenericDTTOpcode.GENERIC_DTT_SET,
+            status_opcode=GenericDTTOpcode.GENERIC_DTT_STATUS,
             params=params,
             send_interval=send_interval,
             timeout=timeout,
@@ -102,24 +98,19 @@ class GenericOnOffClient(Model):
         self,
         destination: int,
         app_index: int,
-        onoff: int,
-        transition_time: float = 0,
+        transition_time: float,
         *,
-        delay: Optional[float] = None,
         retransmissions: Optional[int] = None,
         send_interval: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         params = dict(
-            onoff=onoff,
-            tid=self.tid(),
             transition_time=transition_time,
         )
-        await self.client_delay_set_unack(
+        await self.client_simple_set_unack(
             destination=destination,
             app_index=app_index,
-            request_opcode=GenericOnOffOpcode.GENERIC_ONOFF_SET_UNACKNOWLEDGED,
+            request_opcode=GenericDTTOpcode.GENERIC_DTT_SET_UNACKNOWLEDGED,
             params=params,
-            delay=delay,
             retransmissions=retransmissions,
             send_interval=send_interval,
         )

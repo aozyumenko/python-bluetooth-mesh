@@ -1,7 +1,6 @@
 #
 # python-bluetooth-mesh - Bluetooth Mesh for Python
 #
-# Copyright (C) 2019  SILVAIR sp. z o.o.
 # Copyright (C) 2023  Alexander Ozumenko
 #
 #
@@ -21,36 +20,48 @@
 #
 #
 """
-This module implements GenericOnOff mesh model, both client and server
+This module implements Generic OnPowerUp models, both clients and servers
 """
 from functools import partial
 from typing import Any, Dict, Iterable, NamedTuple, Optional, Sequence, Tuple, Type
 
 from bluetooth_mesh.models.base import Model
-from bluetooth_mesh.messages.generic.onoff import GenericOnOffOpcode
+from bluetooth_mesh.messages.generic.ponoff import (
+    GenericPowerOnOffOpcode,
+    GenericPowerOnOffSetupOpcode,
+    GenericOnPowerUp,
+)
 
 __all__ = [
-    "GenericOnOffServer",
-    "GenericOnOffClient",
+    "GenericPowerOnOffServer",
+    "GenericPowerOnOffSetupServer",
+    "GenericPowerOnOffClient",
 ]
 
 
-
-class GenericOnOffServer(Model):
-    MODEL_ID = (None, 0x1000)
+class GenericPowerOnOffServer(Model):
+    MODEL_ID = (None, 0x1006)
     OPCODES = {
-        GenericOnOffOpcode.GENERIC_ONOFF_GET,
-        GenericOnOffOpcode.GENERIC_ONOFF_SET,
-        GenericOnOffOpcode.GENERIC_ONOFF_SET_UNACKNOWLEDGED,
+        GenericPowerOnOffOpcode.GENERIC_ON_POWERUP_GET,
     }
     PUBLISH = True
     SUBSCRIBE = True
 
 
-class GenericOnOffClient(Model):
-    MODEL_ID = (None, 0x1001)
+class GenericPowerOnOffSetupServer(Model):
+    MODEL_ID = (None, 0x1007)
     OPCODES = {
-        GenericOnOffOpcode.GENERIC_ONOFF_STATUS,
+        GenericPowerOnOffSetupOpcode.GENERIC_ON_POWERUP_SET,
+        GenericPowerOnOffSetupOpcode.GENERIC_ON_POWERUP_SET_UNACKNOWLEDGED,
+    }
+    PUBLISH = True
+    SUBSCRIBE = True
+
+
+class GenericPowerOnOffClient(Model):
+    MODEL_ID = (None, 0x1008)
+    OPCODES = {
+        GenericPowerOnOffOpcode.GENERIC_ON_POWERUP_STATUS,
     }
     PUBLISH = True
     SUBSCRIBE = True
@@ -67,8 +78,8 @@ class GenericOnOffClient(Model):
         return await self.client_simple_get(
             nodes=nodes,
             app_index=app_index,
-            request_opcode=GenericOnOffOpcode.GENERIC_ONOFF_GET,
-            status_opcode=GenericOnOffOpcode.GENERIC_ONOFF_STATUS,
+            request_opcode=GenericPowerOnOffOpcode.GENERIC_ON_POWERUP_GET,
+            status_opcode= GenericPowerOnOffOpcode.GENERIC_ON_POWERUP_STATUS,
             send_interval=send_interval,
             timeout=timeout)
 
@@ -76,23 +87,19 @@ class GenericOnOffClient(Model):
         self,
         nodes: Sequence[int],
         app_index: int,
-        onoff: int,
-        transition_time: float = 0,
+        on_power_up: GenericOnPowerUp,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         params = dict(
-            onoff=onoff,
-            tid=self.tid(),
-            transition_time=transition_time,
-            delay=0,
+            on_power_up=on_power_up,
         )
         return await self.client_simple_set(
             nodes=nodes,
             app_index=app_index,
-            request_opcode=GenericOnOffOpcode.GENERIC_ONOFF_SET,
-            status_opcode=GenericOnOffOpcode.GENERIC_ONOFF_STATUS,
+            request_opcode=GenericPowerOnOffSetupOpcode.GENERIC_ON_POWERUP_SET,
+            status_opcode=GenericPowerOnOffOpcode.GENERIC_ON_POWERUP_STATUS,
             params=params,
             send_interval=send_interval,
             timeout=timeout,
@@ -102,24 +109,19 @@ class GenericOnOffClient(Model):
         self,
         destination: int,
         app_index: int,
-        onoff: int,
-        transition_time: float = 0,
+        on_power_up: GenericOnPowerUp,
         *,
-        delay: Optional[float] = None,
         retransmissions: Optional[int] = None,
         send_interval: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         params = dict(
-            onoff=onoff,
-            tid=self.tid(),
-            transition_time=transition_time,
+            on_power_up=on_power_up,
         )
-        await self.client_delay_set_unack(
+        await self.client_simple_set_unack(
             destination=destination,
             app_index=app_index,
-            request_opcode=GenericOnOffOpcode.GENERIC_ONOFF_SET_UNACKNOWLEDGED,
+            request_opcode=GenericPowerOnOffSetupOpcode.GENERIC_ON_POWERUP_SET_UNACKNOWLEDGED,
             params=params,
-            delay=delay,
             retransmissions=retransmissions,
             send_interval=send_interval,
         )
