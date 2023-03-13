@@ -26,7 +26,7 @@ from functools import partial
 from typing import Any, Dict, Iterable, NamedTuple, Optional, Sequence, Tuple, Type
 
 from bluetooth_mesh.models.base import Model
-from bluetooth_mesh.messages.generic.light.hsl import (
+from bluetooth_mesh.messages.light.hsl import (
     LightHSLOpcode,
     LightHSLSetupOpcode,
 )

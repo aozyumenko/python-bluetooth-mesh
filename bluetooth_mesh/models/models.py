@@ -40,12 +40,12 @@ from bluetooth_mesh.messages.config import (
     StatusCode,
 )
 from bluetooth_mesh.messages.generic.level import GenericLevelOpcode
-from bluetooth_mesh.messages.generic.light.ctl import LightCTLOpcode
-from bluetooth_mesh.messages.generic.light.lightness import (
+from bluetooth_mesh.messages.light.ctl import LightCTLOpcode
+from bluetooth_mesh.messages.light.lightness import (
     LightLightnessOpcode,
     LightLightnessSetupOpcode,
 )
-from bluetooth_mesh.messages.generic.light.hsl import (
+from bluetooth_mesh.messages.light.hsl import (
     LightHSLOpcode,
     LightHSLSetupOpcode,
 )
