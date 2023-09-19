@@ -113,7 +113,7 @@ class GenericPowerOnOffClient(Model):
         *,
         retransmissions: Optional[int] = None,
         send_interval: Optional[float] = None
-    ) -> Dict[int, Optional[Any]]:
+    ) -> None:
         params = dict(
             on_power_up=on_power_up,
         )

@@ -21,7 +21,7 @@
 #
 #
 """
-This module implements mesh models, both clients and servers.
+This module implements Generic Level mesh models, both clients and servers.
 """
 from functools import partial
 from typing import Any, Dict, Iterable, NamedTuple, Optional, Sequence, Tuple, Type
