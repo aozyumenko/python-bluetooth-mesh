@@ -17,12 +17,12 @@ from bluetooth_mesh.messages.config import GATTNamespaceDescriptor, StatusCode
 from bluetooth_mesh.models import (
     ConfigClient,
     HealthClient,
-    SensorClient,
 )
 from bluetooth_mesh.models.generic.onoff import GenericOnOffClient
 from bluetooth_mesh.models.generic.level import GenericLevelClient
 from bluetooth_mesh.models.generic.dtt import GenericDTTClient
 from bluetooth_mesh.models.generic.ponoff import GenericPowerOnOffClient
+from bluetooth_mesh.models.sensor import SensorClient
 from bluetooth_mesh.models.scene import SceneClient
 from bluetooth_mesh.models.light.lightness import LightLightnessClient
 from bluetooth_mesh.models.light.ctl import LightCTLClient
