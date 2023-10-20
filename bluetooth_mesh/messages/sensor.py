@@ -51,6 +51,7 @@ from bluetooth_mesh.messages.properties import (
     PropertyDict,
     PropertyID,
     PropertyValue,
+    TimeExponential8Validator,
 )
 from bluetooth_mesh.messages.util import (
     AliasedContainer,
@@ -235,8 +236,8 @@ SensorDescriptorOptional = Struct(
     Embedded(SensorDescriptorMinimal),
     *DoubleKeyIndex("sensor_negative_tolerance", "sensor_positive_tolerance"),
     "sensor_sampling_funcion" / Int8ul,
-    "sensor_measurement_period" / Int8ul,
-    "sensor_update_interval" / Int8ul
+    "sensor_measurement_period" / TimeExponential8Validator(Int8ul),
+    "sensor_update_interval" / TimeExponential8Validator(Int8ul),
 )
 
 SensorDescriptorStatusItem = NamedSelect(
