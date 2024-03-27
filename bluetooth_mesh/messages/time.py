@@ -139,6 +139,18 @@ class TimeZoneOffsetAdapter(Adapter):
         return 0x40 + (obj // 15)
 
 
+class TimeZoneTimedeltaAdapter(Adapter):
+    """
+    Time Zone Offset is described in minutes, mesh format in 15-minute increments.
+    """
+
+    def _decode(self, obj, context, path):
+        return mesh_time_zone_offset_to_timedelta(obj)
+
+    def _encode(self, obj, context, path):
+        return timedelta_to_mesh_time_zone_offset(obj)
+
+
 class TAIUTCDeltaAdapter(Adapter):
     """
     TAI-UTC Delta is described in seconds encoded in signed integer, mesh format in signed integer with different offset
@@ -254,8 +266,8 @@ TimeZoneSet = Struct(
 )
 
 TimeZoneStatus = Struct(
-    "time_zone_offset_current" / Int8ul,
-    "time_zone_offset_new" / Int8ul,
+    "time_zone_offset_current" / TimeZoneTimedeltaAdapter(Int8ul),
+    "time_zone_offset_new" / TimeZoneTimedeltaAdapter(Int8ul),
     "tai_of_zone_change" / BytesInteger(5, swapped=True),
 )
 
