@@ -1,15 +1,13 @@
 #!/usr/bin/python3
 
 import sys
-
-
-import logging
+import os
 import asyncio
 import secrets
 from contextlib import suppress
 from uuid import UUID
-
 from docopt import docopt
+#from typing import Any
 
 from bluetooth_mesh.application import Application, Element, Capabilities
 from bluetooth_mesh.crypto import ApplicationKey, DeviceKey, NetworkKey
@@ -23,12 +21,13 @@ from bluetooth_mesh.models.generic.level import GenericLevelClient
 from bluetooth_mesh.models.generic.dtt import GenericDTTClient
 from bluetooth_mesh.models.generic.ponoff import GenericPowerOnOffClient
 from bluetooth_mesh.models.sensor import SensorClient
+from bluetooth_mesh.models.time import TimeClient
 from bluetooth_mesh.models.scene import SceneClient
 from bluetooth_mesh.models.light.lightness import LightLightnessClient
 from bluetooth_mesh.models.light.ctl import LightCTLClient
 from bluetooth_mesh.models.light.hsl import LightHSLClient
 
-
+import logging
 log = logging.getLogger()
 
 
@@ -46,6 +45,7 @@ class MainElement(Element):
         LightLightnessClient,
         LightCTLClient,
         LightHSLClient,
+        TimeClient,
     ]
 
 
@@ -56,10 +56,13 @@ class SampleApplication(Application):
     ELEMENTS = {
         0: MainElement,
     }
-#    CAPABILITIES = [Capabilities.OUT_NUMERIC]
-
+    CAPABILITIES = [Capabilities.OUT_NUMERIC]
     CRPL = 32768
-    PATH = "/com/silvair/sample"
+
+    def __init__(self, path_suffix, loop) -> None:
+        self.PATH = "/com/silvair/sample_" + path_suffix
+        super().__init__(loop)
+
 
     @property
     def iv_index(self):
@@ -95,12 +98,13 @@ def main():
     Join client node Sample Application
 
     Usage:
-        join_client.py [-V]
+        join_client.py [-V] [-s <path suffix>]
         join_client.py [-V] -l <token>
         join_client.py [-h | --help]
         join_client.py --version
 
     Options:
+        -s <path suffix>        Suffix for DBUS path
         -l <token>              Leave node
         -V                      Show verbose messages
         -h --help               Show this screen
@@ -111,9 +115,13 @@ def main():
 
     if arguments['-V']:
         logging.basicConfig(level=logging.DEBUG)
+    if arguments['-s']:
+        path_suffix = arguments['-s']
+    else:
+        path_suffix = os.environ['USER']
 
     loop = asyncio.get_event_loop()
-    app = SampleApplication(loop)
+    app = SampleApplication(path_suffix, loop)
 
     with suppress(KeyboardInterrupt):
         loop.run_until_complete(app.run(arguments))

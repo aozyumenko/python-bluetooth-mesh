@@ -1,20 +1,24 @@
 #!/usr/bin/python3
 
+import os
 import logging
 import asyncio
 import secrets
 from contextlib import suppress
 from uuid import UUID
+from typing import (Union)
+import time
+from datetime import datetime, timedelta, timezone
 
 from docopt import docopt
 
+from bluetooth_mesh.utils import ParsedMeshMessage
 from bluetooth_mesh.application import Application, Element, Capabilities
 from bluetooth_mesh.crypto import ApplicationKey, DeviceKey, NetworkKey
+from bluetooth_mesh.messages.properties import PropertyID
 from bluetooth_mesh.messages.config import GATTNamespaceDescriptor, StatusCode
-from bluetooth_mesh.models import (
-    ConfigClient,
-    HealthClient,
-)
+from bluetooth_mesh.messages.time import CURRENT_TAI_UTC_DELTA
+from bluetooth_mesh.models import ConfigClient, HealthClient
 from bluetooth_mesh.models.generic.onoff import GenericOnOffClient
 from bluetooth_mesh.models.generic.level import GenericLevelClient
 from bluetooth_mesh.models.generic.dtt import GenericDTTClient
@@ -30,6 +34,7 @@ from bluetooth_mesh.models.light.hsl import LightHSLClient
 G_TIMEOUT = 5
 
 log = logging.getLogger()
+
 
 
 class MainElement(Element):
@@ -60,30 +65,57 @@ class SampleApplication(Application):
     CAPABILITIES = [Capabilities.OUT_NUMERIC]
 
     CRPL = 32768
-    PATH = "/com/silvair/sample"
+    PATH = "/com/silvair/sample_" + os.environ['USER']
 
     @property
     def iv_index(self):
         return 0
 
+
     async def get(self, addr, app_index, arguments):
-        client = self.elements[0][GenericPowerOnOffClient]
-        result = await client.get([addr], app_index=app_index, timeout=G_TIMEOUT)
+        client = self.elements[0][TimeClient]
+        result = await client.get(
+            [addr],
+            app_index=app_index,
+            timeout=G_TIMEOUT
+        )
+        print(result[addr])
+
+    async def time_zone_get(self, addr, app_index, arguments):
+        client = self.elements[0][TimeClient]
+        result = await client.time_zone_get(
+            [addr],
+            app_index=app_index,
+            timeout=G_TIMEOUT
+        )
+        print(result[addr])
+
+    async def tai_utc_delta_get(self, addr, app_index, arguments):
+        client = self.elements[0][TimeClient]
+        result = await client.tai_utc_delta_get(
+            [addr],
+            app_index=app_index,
+            timeout=G_TIMEOUT
+        )
         print(result[addr])
 
     async def set(self, addr, app_index, arguments):
-        client = self.elements[0][GenericPowerOnOffClient]
-        val = int(arguments['<val>'])
-        result = await client.set([addr], app_index=app_index,
-                                  on_power_up=val,
-                                  timeout=G_TIMEOUT)
+        system_timezone_offset = time.timezone * -1
+        system_timezone = timezone(offset=timedelta(seconds=system_timezone_offset))
+        date = datetime.now(system_timezone)
+
+        client = self.elements[0][TimeClient]
+        result = await client.set(
+            [addr],
+            app_index=app_index,
+            date=date,
+            tai_utc_delta=timedelta(seconds=CURRENT_TAI_UTC_DELTA),
+            uncertainty=timedelta(0),
+            time_authority=True,
+            timeout=G_TIMEOUT
+        )
         print(result[addr])
 
-    async def set_unack(self, addr, app_index, arguments):
-        client = self.elements[0][GenericPowerOnOffClient]
-        val = int(arguments['<val>'])
-        await client.set_unack(addr, app_index=app_index,
-                               on_power_up=val)
 
 
     async def run(self, token, addr, app_index, cmd, arguments):
@@ -94,27 +126,30 @@ class SampleApplication(Application):
 
             if cmd == "get":
                 await self.get(addr, app_index, arguments)
+            elif cmd == "time_zone_get":
+                await self.time_zone_get(addr, app_index, arguments)
+            elif cmd == "tai_utc_delta_get":
+                await self.tai_utc_delta_get(addr, app_index, arguments)
             elif cmd == "set":
                 await self.set(addr, app_index, arguments)
-            elif cmd == "set_unack":
-                await self.set_unack(addr, app_index, arguments)
+
 
 
 def main():
     doc = """
-    Generic Generic OnPowerUp Client Sample Application
+    Time Server Sample Application
 
     Usage:
-        generic_ponoff_client.py [-V] -t <token> -a <address> get
-        generic_ponoff_client.py [-V] -t <token> -a <address> set <val>
-        generic_ponoff_client.py [-V] -t <token> -a <address> set_unack <val>
-        generic_ponoff_client.py [-h | --help]
-        generic_ponoff_client.py --version
+        time_server.py [-V] -t <token> -a <address> get
+        time_server.py [-V] -t <token> -a <address> time_zone_get
+        time_server.py [-V] -t <token> -a <address> tai_utc_delta_get
+        time_server.py [-V] -t <token> -a <address> set
+        time_server.py [-h | --help]
+        time_server.py --version
 
     Options:
         -t <token>              bluetooth-meshd node token
         -a <address>            Local node unicast address
-        <val>                   0-off, 1-default, 2-restore
         -V                      Show verbose messages
         -h --help               Show this screen
         --version               Show version
@@ -132,10 +167,15 @@ def main():
 
     if arguments['get']:
         cmd = 'get'
+    elif arguments['time_zone_get']:
+        cmd = 'time_zone_get'
+    elif arguments['tai_utc_delta_get']:
+        cmd = 'tai_utc_delta_get'
     elif arguments['set']:
         cmd = 'set'
-    elif arguments['set_unack']:
-        cmd = 'set_unack'
+    else:
+        print(doc)
+        exit(-1)
 
     loop = asyncio.get_event_loop()
     app = SampleApplication(loop)
