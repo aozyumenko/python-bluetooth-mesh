@@ -173,7 +173,9 @@ class PropertyID(IntEnum):
     TOTAL_DEVICE_RUNTIME = 0x006E
     TOTAL_LIGHT_EXPOSURE_TIME = 0x006F
     TOTAL_LUMINOUS_ENERGY = 0x0070
+    DESIRED_AMBIENT_TEMPERATURE = 0x0071
     PRECISE_TOTAL_DEVICE_ENERGY_USE = 0x0072
+    PRECISE_PRESENT_AMBIENT_TEMPERATURE = 0x0075
 
     def __repr__(self):
         return str(self.value)
@@ -623,7 +625,9 @@ PropertyDict = {
     PropertyID.TOTAL_DEVICE_RUNTIME: TimeHour24,
     PropertyID.TOTAL_LIGHT_EXPOSURE_TIME: TimeHour24,
     PropertyID.TOTAL_LUMINOUS_ENERGY: LuminousEnergy,
+    PropertyID.DESIRED_AMBIENT_TEMPERATURE: Temperature8,
     PropertyID.PRECISE_TOTAL_DEVICE_ENERGY_USE: Energy32,
+    PropertyID.PRECISE_PRESENT_AMBIENT_TEMPERATURE: Temperature,
 }
 
 PropertyValue = Switch(
