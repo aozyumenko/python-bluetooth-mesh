@@ -202,14 +202,14 @@ class TimeAdapter(Adapter):
                 time_authority=None,
                 uncertainty=None
             )
+        tai_utc_delta = mesh_tai_utc_delta_to_timedelta(obj["tai_utc_delta"])
         time_zone = mesh_time_zone_offset_to_timedelta(obj["time_zone_offset"])
-        full_recv_time = obj["tai_seconds"] + subsecond_to_seconds(obj["subsecond"]) + MESH_UNIX_EPOCH_DIFF + int(
-            time_zone.total_seconds())
+        full_recv_time = obj["tai_seconds"] + subsecond_to_seconds(obj["subsecond"]) + tai_utc_delta.total_seconds() + MESH_UNIX_EPOCH_DIFF
         recv_date = datetime.fromtimestamp(full_recv_time, timezone(time_zone))
 
         return Container(
             date=recv_date,
-            tai_utc_delta=mesh_tai_utc_delta_to_timedelta(obj["tai_utc_delta"]),
+            tai_utc_delta=tai_utc_delta,
             time_authority=bool(obj["time_authority"]),
             uncertainty=timedelta(milliseconds=(obj["uncertainty"] * 10))
         )
@@ -236,7 +236,7 @@ class TimeAdapter(Adapter):
         if isinstance(obj["tai_utc_delta"], int):
             obj["tai_utc_delta"] = timedelta(seconds=obj["tai_utc_delta"])
 
-        total_time = passed_time.timestamp() - MESH_UNIX_EPOCH_DIFF - passed_time.utcoffset().total_seconds()
+        total_time = passed_time.timestamp() - obj["tai_utc_delta"].total_seconds() - MESH_UNIX_EPOCH_DIFF
 
         return Container(
             tai_seconds=int(total_time),
