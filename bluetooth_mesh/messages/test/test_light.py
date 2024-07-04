@@ -22,19 +22,23 @@
 import pytest
 
 from bluetooth_mesh.messages.config import StatusCode
-from bluetooth_mesh.messages.light import (
-    LightHSLMessage,
-    LightHSLOpcode,
-    LightHSLSetupMessage,
-    LightHSLSetupOpcode,
-    LightCTLMessage,
-    LightCTLOpcode,
-    LightCTLSetupMessage,
-    LightCTLSetupOpcode,
+from bluetooth_mesh.messages.light.lightness import (
     LightLightnessMessage,
     LightLightnessOpcode,
     LightLightnessSetupMessage,
     LightLightnessSetupOpcode,
+)
+from bluetooth_mesh.messages.light.ctl import (
+    LightCTLMessage,
+    LightCTLOpcode,
+    LightCTLSetupMessage,
+    LightCTLSetupOpcode,
+)
+from bluetooth_mesh.messages.light.hsl import (
+    LightHSLMessage,
+    LightHSLOpcode,
+    LightHSLSetupMessage,
+    LightHSLSetupOpcode,
 )
 
 valid_lightness = [
