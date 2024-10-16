@@ -37,7 +37,10 @@ from bluetooth_mesh.messages.properties import DefaultCountValidator
 
 # NOTE: VID=0x0005 is only used for testing and should be changed in the future
 class ThermostatOpcode(IntEnum):
-    THERMOSTAT = 0xC00500
+    VENDOR_THERMOSTAT = 0xC00500
+
+    def __repr__(self):
+        return str(self.value)
 
 class ThermostatSubOpcode(IntEnum):
     THERMOSTAT_GET = 0x00
@@ -45,6 +48,9 @@ class ThermostatSubOpcode(IntEnum):
     THERMOSTAT_STATUS = 0x02
     THERMOSTAT_RANGE_GET = 0x03
     THERMOSTAT_RANGE_STATUS = 0x04
+
+    def __repr__(self):
+        return str(self.value)
 
 class ThermostatStatusCode(IntEnum):
     GOOD = 0x00
@@ -65,10 +71,12 @@ ThermostatGet = Struct()
 
 ThermostatSet = Struct(
     *EmbeddedBitStruct("_",
-        "rsvd" / BitsInteger(6),
+        "rsvd" / BitsInteger(5),
         "mode" / EnumAdapter(BitsInteger(2), ThermostatMode),
+        "onoff" / Flag,
     ),
     "temperature" / Temperature,
+    "tid" / Int8ul,
 )
 
 ThermostatStatus = Struct(
@@ -110,7 +118,9 @@ ThermostatMessage = SwitchStruct(
     "params" / Switch(
         this.opcode,
         {
-            ThermostatOpcode.THERMOSTAT: ThermostatParams
+            ThermostatOpcode.VENDOR_THERMOSTAT: ThermostatParams,
         },
     ),
 )
+
+# fmt: off
