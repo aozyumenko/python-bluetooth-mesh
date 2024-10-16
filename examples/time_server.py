@@ -9,8 +9,7 @@ from uuid import UUID
 from typing import (Union)
 import time
 from datetime import datetime, timedelta, timezone
-
-
+import json
 from docopt import docopt
 
 from bluetooth_mesh.utils import ParsedMeshMessage
@@ -22,7 +21,10 @@ from bluetooth_mesh.messages.time import TimeOpcode, TimeRole, CURRENT_TAI_UTC_D
 from bluetooth_mesh.models.time import TimeServer, TimeSetupServer
 
 
-G_TIMEOUT = 5
+G_SEND_INTERVAL = 0.5
+G_TIMEOUT = 3
+G_JSON_CONF = "time_server_" + os.environ['USER'] +".json"
+G_PATH = "/ru/stdio/time_server_" + os.environ['USER']
 
 log = logging.getLogger()
 
@@ -46,23 +48,40 @@ class SampleApplication(Application):
     CAPABILITIES = [Capabilities.OUT_NUMERIC]
 
     CRPL = 32768
-    PATH = "/com/silvair/sample_time_server"
+    PATH = G_PATH
 
     @property
     def iv_index(self):
         return 0
 
+
+    def token_load(self):
+        try:
+            with open(G_JSON_CONF, "r") as tokenfile:
+                try:
+                    return json.load(tokenfile)
+                except (json.JSONDecodeError, EOFError):
+                    return dict({'user': os.environ['USER'], 'token': None, 'path': self.PATH})
+        except FileNotFoundError:
+            return dict({'user': os.environ['USER'], 'token': None, 'path': self.PATH})
+
+    def token_save(self, data):
+        with open(G_JSON_CONF, "w") as tokenfile:
+            return json.dump(data, tokenfile)
+
     def display_numeric(self, type: str, number: int):
          print("request key, number: %d" % (number))
 
-    async def mesh_join(self):
+    async def mesh_join(self, token_conf):
         print("Join start...")
         token = await self.join()
-        print("Join complete, token: 0x%x" % (token))
+        token_conf['token'] = token
+        self.token_save(token_conf)
 
     async def mesh_leave(self):
         await self.connect()
         await self.leave()
+        os.remove(G_JSON_CONF)
 
     async def mesh_listen(self):
         def receive_get(
@@ -168,11 +187,14 @@ class SampleApplication(Application):
 
     async def run(self, cmd, arguments):
         async with self:
-            if arguments['-t']:
-                self.token_ring.token = int(arguments['-t'], 16)
+            token_conf = self.token_load()
+            if 'token' in token_conf and token_conf['token'] is not None:
+                self.token_ring.token = token_conf['token']
+            if 'path' in token_conf:
+                self.PATH = token_conf['path']
 
             if cmd == "join":
-                await self.mesh_join()
+                await self.mesh_join(token_conf)
             elif cmd == "leave":
                 await self.mesh_leave()
             elif cmd == "start":
@@ -186,14 +208,14 @@ def main():
 
     Usage:
         time_server.py [-V] join
-        time_server.py [-V] -t <token> leave
-        time_server.py [-V] -t <token>
+        time_server.py [-V] leave
+        time_server.py [-V]
         time_server.py [-h | --help]
         time_server.py --version
 
     Options:
         join                    join to the Mesh network
-        -t <token>              bluetooth-meshd node token
+        leave                   leave the Mesh network
         -V                      Show verbose messages
         -h --help               Show this screen
         --version               Show version
@@ -211,11 +233,8 @@ def main():
         cmd = "join"
     elif arguments['leave']:
         cmd = "leave"
-    elif arguments['-t']:
-        cmd = "start"
     else:
-        print(doc)
-        exit(-1)
+        cmd = "start"
 
     with suppress(KeyboardInterrupt):
         loop.run_until_complete(app.run(cmd, arguments))

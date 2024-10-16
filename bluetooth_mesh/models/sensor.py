@@ -179,7 +179,6 @@ class SensorClient(Model):
         )
 
 
-
     async def get(
         self,
         nodes: Sequence[int],
