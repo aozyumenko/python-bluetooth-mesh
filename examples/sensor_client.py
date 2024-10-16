@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import os
 import logging
 import asyncio
 import secrets
@@ -67,7 +68,7 @@ class SampleApplication(Application):
     CAPABILITIES = [Capabilities.OUT_NUMERIC]
 
     CRPL = 32768
-    PATH = "/com/silvair/sample"
+    PATH = "/com/silvair/sample" + os.environ['USER']
 
     @property
     def iv_index(self):

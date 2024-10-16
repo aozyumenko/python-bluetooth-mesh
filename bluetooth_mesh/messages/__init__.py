@@ -42,6 +42,7 @@ from .health import HealthMessage, HealthOpcode
 from .scene import SceneMessage, SceneOpcode
 from .sensor import SensorMessage, SensorOpcode, SensorSetupMessage, SensorSetupOpcode
 from .time import TimeMessage, TimeOpcode
+from .vendor.thermostat import ThermostatMessage, ThermostatOpcode
 from .util import Opcode
 
 
@@ -65,6 +66,7 @@ class _AccessMessage(Construct):
         SensorOpcode: SensorMessage,
         SensorSetupOpcode: SensorSetupMessage,
         TimeOpcode: TimeMessage,
+        ThermostatOpcode: ThermostatMessage,
     }
 
     OPCODE = Opcode()
