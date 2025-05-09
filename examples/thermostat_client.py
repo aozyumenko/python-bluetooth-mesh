@@ -31,7 +31,7 @@ from bluetooth_mesh.messages.generic.onoff import GenericOnOffOpcode
 
 
 G_SEND_INTERVAL = 0.5
-G_TIMEOUT = 3
+G_TIMEOUT = 10
 G_JSON_CONF = "thermostat_client_" + os.environ['USER'] +".json"
 G_PATH = "/ru/stdio/vendor_thermostat_" + os.environ['USER']
 

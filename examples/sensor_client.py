@@ -6,6 +6,7 @@ import asyncio
 import secrets
 from contextlib import suppress
 from uuid import UUID
+import json
 from typing import (Union)
 
 from docopt import docopt
@@ -34,8 +35,10 @@ from bluetooth_mesh.models.light.ctl import LightCTLClient
 from bluetooth_mesh.models.light.hsl import LightHSLClient
 
 
+G_SEND_INTERVAL = 0.5
+G_TIMEOUT = 5.0
+G_JSON_CONF = "join_client_" + os.environ['USER'] +".json"
 
-G_TIMEOUT = 5
 
 log = logging.getLogger()
 
@@ -73,6 +76,16 @@ class SampleApplication(Application):
     @property
     def iv_index(self):
         return 0
+
+    def token_load(self):
+        try:
+            with open(G_JSON_CONF, "r") as tokenfile:
+                try:
+                    return json.load(tokenfile)
+                except (json.JSONDecodeError, EOFError):
+                    return dict({'user': os.environ['USER'], 'token': None, 'path': self.PATH})
+        except FileNotFoundError:
+            return dict({'user': os.environ['USER'], 'token': None, 'path': self.PATH})
 
 
     async def descriptor_get(self, addr, app_index, arguments):
@@ -147,9 +160,13 @@ class SampleApplication(Application):
             await asyncio.sleep(10)
 
 
-    async def run(self, token, addr, app_index, cmd, arguments):
+    async def run(self, addr, app_index, cmd, arguments):
         async with self:
-            self.token_ring.token = token
+            token_conf = self.token_load()
+            if 'token' in token_conf:
+                self.token_ring.token = token_conf['token']
+            if 'path' in token_conf:
+                self.PATH = token_conf['path']
 
             await self.connect()
 
@@ -170,16 +187,15 @@ def main():
     Sensor Client Sample Application
 
     Usage:
-        sensor_client.py [-V] -t <token> -a <address> descriptor_get
-        sensor_client.py [-V] -t <token> -a <address> -p <property_id> cadence_get
-        sensor_client.py [-V] -t <token> -a <address> -p <property_id> cadence_set <fast_divisor>
-        sensor_client.py [-V] -t <token> -a <address> [-p <property_id>] get
-        sensor_client.py [-V] -t <token> -a <address> listen
+        sensor_client.py [-V] -a <address> descriptor_get
+        sensor_client.py [-V] -a <address> -p <property_id> cadence_get
+        sensor_client.py [-V] -a <address> -p <property_id> cadence_set <fast_divisor>
+        sensor_client.py [-V] -a <address> [-p <property_id>] get
+        sensor_client.py [-V] -a <address> listen
         sensor_client.py [-h | --help]
         sensor_client.py --version
 
     Options:
-        -t <token>              bluetooth-meshd node token
         -a <address>            Local node unicast address
         -p <property_id>        Sensor property id in hex
         -V                      Show verbose messages
@@ -192,7 +208,6 @@ def main():
     if arguments['-V']:
         logging.basicConfig(level=logging.DEBUG)
 
-    token = int(arguments['-t'], 16)
     addr = int(arguments['-a'], 16)
     app_index = 0
     cmd = None
@@ -215,7 +230,7 @@ def main():
     app = SampleApplication(loop)
 
     with suppress(KeyboardInterrupt):
-        loop.run_until_complete(app.run(token, addr, app_index, cmd, arguments))
+        loop.run_until_complete(app.run(addr, app_index, cmd, arguments))
 
 
 if __name__ == '__main__':

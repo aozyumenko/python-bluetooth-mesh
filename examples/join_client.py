@@ -6,8 +6,8 @@ import asyncio
 import secrets
 from contextlib import suppress
 from uuid import UUID
+import json
 from docopt import docopt
-#from typing import Any
 
 from bluetooth_mesh.application import Application, Element, Capabilities
 from bluetooth_mesh.crypto import ApplicationKey, DeviceKey, NetworkKey
@@ -20,6 +20,7 @@ from bluetooth_mesh.models.generic.onoff import GenericOnOffClient
 from bluetooth_mesh.models.generic.level import GenericLevelClient
 from bluetooth_mesh.models.generic.dtt import GenericDTTClient
 from bluetooth_mesh.models.generic.ponoff import GenericPowerOnOffClient
+from bluetooth_mesh.models.generic.battery import GenericBatteryClient
 from bluetooth_mesh.models.sensor import SensorClient
 from bluetooth_mesh.models.time import TimeClient
 from bluetooth_mesh.models.scene import SceneClient
@@ -31,6 +32,9 @@ import logging
 log = logging.getLogger()
 
 
+G_JSON_CONF = "join_client_" + os.environ['USER'] +".json"
+
+
 class MainElement(Element):
     LOCATION = GATTNamespaceDescriptor.MAIN
     MODELS = [
@@ -39,6 +43,7 @@ class MainElement(Element):
         GenericOnOffClient,
         GenericDTTClient,
         GenericPowerOnOffClient,
+        GenericBatteryClient,
         SceneClient,
         GenericLevelClient,
         SensorClient,
@@ -74,21 +79,42 @@ class SampleApplication(Application):
     def display_numeric(self, type: str, number: int):
          print("request key: type=%s, number=%d" % (type, number))
 
+    def token_save(self, token):
+        with open(G_JSON_CONF, "w") as tokenfile:
+            json.dump(
+                dict({'user': os.environ['USER'], 'token': token, 'path': self.PATH}),
+                tokenfile
+            )
+
+    def token_load(self):
+        try:
+            with open(G_JSON_CONF, "r") as tokenfile:
+                try:
+                    return json.load(tokenfile)
+                except (json.JSONDecodeError, EOFError):
+                    return dict({'user': os.environ['USER'], 'token': None, 'path': self.PATH})
+        except FileNotFoundError:
+            return dict({'user': os.environ['USER'], 'token': None, 'path': self.PATH})
+
 
     async def mesh_join(self):
         token = await self.join()
         print("Join start, token=0x%x" % (token))
+        self.token_save(token);
 
-    async def mesh_leave(self, token):
-        self.token_ring.token = token
+    async def mesh_leave(self):
+        token_conf = self.token_load()
+        if 'token' in token_conf:
+            self.token_ring.token = token_conf['token']
+        if 'path' in token_conf:
+            self.PATH = token_conf['path']
         await self.leave()
 
     async def run(self, arguments):
         async with self:
             if arguments['-l']:
                 # LEAVE
-                token = int(arguments['-l'], 16)
-                await self.mesh_leave(token)
+                await self.mesh_leave()
             else:
                 # JOIN
                 await self.mesh_join()
@@ -99,13 +125,13 @@ def main():
 
     Usage:
         join_client.py [-V] [-s <path suffix>]
-        join_client.py [-V] -l <token>
+        join_client.py [-V] -l
         join_client.py [-h | --help]
         join_client.py --version
 
     Options:
         -s <path suffix>        Suffix for DBUS path
-        -l <token>              Leave node
+        -l                      Leave node
         -V                      Show verbose messages
         -h --help               Show this screen
         --version               Show version
