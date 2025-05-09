@@ -4,6 +4,7 @@ from .level import GenericLevelMessage
 from .onoff import GenericOnOffMessage
 from .dtt import GenericDTTMessage
 from .ponoff import  GenericPowerOnOffMessage, GenericPowerOnOffSetupMessage
+from .battery import  GenericBatteryMessage
 
 GenericMessage = Select(
     GenericOnOffMessage,
@@ -11,4 +12,5 @@ GenericMessage = Select(
     GenericDTTMessage,
     GenericPowerOnOffMessage,
     GenericPowerOnOffSetupMessage,
+    GenericBatteryMessage,
 )
