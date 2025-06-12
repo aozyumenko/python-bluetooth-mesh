@@ -24,7 +24,7 @@
 This module implements Scene mesh models, both clients and servers.
 """
 from functools import partial
-from typing import Any, Dict, Iterable, NamedTuple, Optional, Sequence, Tuple, Type
+from typing import Any, Dict, Iterable, NamedTuple, Optional, Tuple, Type
 
 from bluetooth_mesh.models.base import Model
 from bluetooth_mesh.messages.scene import SceneOpcode
@@ -64,14 +64,14 @@ class SceneClient(Model):
 
     async def get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=SceneOpcode.SCENE_GET,
             status_opcode=SceneOpcode.SCENE_STATUS,
@@ -80,10 +80,11 @@ class SceneClient(Model):
 
     async def recall(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         scene_number: int,
-        transition_time: float = 0,
+        transition_time: Optional[float] = None,
+        delay: Optional[float] = None,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
@@ -92,10 +93,10 @@ class SceneClient(Model):
             scene_number=scene_number,
             tid=self.tid(),
             transition_time=transition_time,
-            delay=0,
+            delay=delay,
         )
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=SceneOpcode.SCENE_RECALL,
             status_opcode=SceneOpcode.SCENE_STATUS,
@@ -109,9 +110,9 @@ class SceneClient(Model):
         destination: int,
         app_index: int,
         scene_number: int,
-        transition_time: float = 0,
-        *,
+        transition_time: Optional[float] = None,
         delay: Optional[float] = None,
+        *,
         retransmissions: Optional[int] = None,
         send_interval: Optional[float] = None
     ) -> None:
@@ -132,14 +133,14 @@ class SceneClient(Model):
 
     async def register_get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=SceneOpcode.SCENE_REGISTER_GET,
             status_opcode=SceneOpcode.SCENE_REGISTER_STATUS,
@@ -148,10 +149,9 @@ class SceneClient(Model):
 
     async def store(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         scene_number: int,
-        transition_time: float = 0,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
@@ -160,7 +160,7 @@ class SceneClient(Model):
             scene_number=scene_number
         )
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=SceneOpcode.SCENE_STORE,
             status_opcode=SceneOpcode.SCENE_REGISTER_STATUS,
@@ -179,7 +179,7 @@ class SceneClient(Model):
         send_interval: Optional[float] = None
     ) -> None:
         params = dict(
-            on_power_up=on_power_up,
+            scene_number=scene_number,
         )
         await self.client_simple_set_unack(
             destination=destination,
@@ -192,10 +192,9 @@ class SceneClient(Model):
 
     async def delete(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         scene_number: int,
-        transition_time: float = 0,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
@@ -204,7 +203,7 @@ class SceneClient(Model):
             scene_number=scene_number
         )
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=SceneOpcode.SCENE_DELETE,
             status_opcode=SceneOpcode.SCENE_REGISTER_STATUS,
@@ -223,12 +222,12 @@ class SceneClient(Model):
         send_interval: Optional[float] = None
     ) -> None:
         params = dict(
-            on_power_up=on_power_up,
+            scene_number=scene_number,
         )
         await self.client_simple_set_unack(
             destination=destination,
             app_index=app_index,
-            request_opcode=SceneOpcode.SCENE_STORE_UNACKNOWLEDGED,
+            request_opcode=SceneOpcode.SCENE_DELETE_UNACKNOWLEDGED,
             params=params,
             retransmissions=retransmissions,
             send_interval=send_interval,

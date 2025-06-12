@@ -107,3 +107,6 @@ venv.bak/
 
 # pycharm
 .idea/
+
+# debug helpers
+examples/start_*.sh

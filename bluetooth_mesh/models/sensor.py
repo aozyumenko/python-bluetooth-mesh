@@ -24,7 +24,7 @@
 This module implements Sensor mesh models, both clients and servers.
 """
 from functools import partial
-from typing import Any, Dict, Iterable, NamedTuple, Optional, Union, Sequence, Tuple, Type
+from typing import Any, Dict, Iterable, NamedTuple, Optional, Union, Tuple, Type
 
 from bluetooth_mesh.models.base import Model
 from bluetooth_mesh.messages.sensor import SensorOpcode, SensorSetupOpcode
@@ -81,14 +81,14 @@ class SensorClient(Model):
 
     async def descriptor_get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=SensorOpcode.SENSOR_DESCRIPTOR_GET,
             status_opcode=SensorOpcode.SENSOR_DESCRIPTOR_STATUS,
@@ -97,53 +97,43 @@ class SensorClient(Model):
 
     async def cadence_get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         property_id: Optional[PropertyID] = None,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
-        requests = {
-            node: partial(
-                self.send_app,
-                node,
-                app_index=app_index,
-                opcode=SensorSetupOpcode.SENSOR_CADENCE_GET,
-                params=dict(property_id=property_id),
-            )
-            for node in nodes
-        }
-
-        status_opcode = SensorSetupOpcode.SENSOR_CADENCE_STATUS
-        statuses = {
-            node: self.expect_app(
-                node,
-                app_index=0,
-                destination=None,
-                opcode=status_opcode,
-                params=dict(),
-            )
-            for node in nodes
-        }
-
-        results = await self.bulk_query(
-            requests,
-            statuses,
-            send_interval=send_interval,
-            timeout=timeout or len(nodes) * 0.5,
+        request = partial(
+            self.send_app,
+            destination,
+            app_index=app_index,
+            opcode=SensorSetupOpcode.SENSOR_CADENCE_GET,
+            params=dict(property_id=property_id),
         )
 
-        return {
-            node: None if isinstance(result, BaseException)
-            else result[status_opcode.name.lower()]
-            for node, result in results.items()
-        }
+        status_opcode = SensorSetupOpcode.SENSOR_CADENCE_STATUS
+        status = self.expect_app(
+            destination,
+            app_index=0,
+            destination=None,
+            opcode=status_opcode,
+            params=dict(),
+        )
+
+        result = await self.query(
+            request,
+            status,
+            send_interval=send_interval,
+            timeout=timeout,
+        )
+
+        return None if isinstance(result, BaseException) else result[status_opcode.name.lower()]
 
 
     async def cadence_set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         sensor_setting_property_id: PropertyID,
         fast_cadence_period_divisor: int,
@@ -169,7 +159,7 @@ class SensorClient(Model):
         )
         print(params)
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=SensorSetupOpcode.SENSOR_CADENCE_SET,
             status_opcode=SensorSetupOpcode.SENSOR_CADENCE_STATUS,
@@ -181,45 +171,35 @@ class SensorClient(Model):
 
     async def get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         property_id: Optional[PropertyID] = None,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
-        requests = {
-            node: partial(
-                self.send_app,
-                node,
-                app_index=app_index,
-                opcode=SensorOpcode.SENSOR_GET,
-                params=dict(property_id=property_id),
-            )
-            for node in nodes
-        }
-
-        status_opcode = SensorOpcode.SENSOR_STATUS
-        statuses = {
-            node: self.expect_app(
-                node,
-                app_index=0,
-                destination=None,
-                opcode=status_opcode,
-                params=dict(),
-            )
-            for node in nodes
-        }
-
-        results = await self.bulk_query(
-            requests,
-            statuses,
-            send_interval=send_interval,
-            timeout=timeout or len(nodes) * 0.5,
+        request = partial(
+            self.send_app,
+            destination,
+            app_index=app_index,
+            opcode=SensorOpcode.SENSOR_GET,
+            params=dict(property_id=property_id),
         )
 
-        return {
-            node: None if isinstance(result, BaseException)
-            else result[status_opcode.name.lower()]
-            for node, result in results.items()
-        }
+        status_opcode = SensorOpcode.SENSOR_STATUS
+        status = self.expect_app(
+            destination,
+            app_index=0,
+            destination=None,
+            opcode=status_opcode,
+            params=dict(),
+        )
+
+        result = await self.query(
+            request,
+            status,
+            send_interval=send_interval,
+            timeout=timeout,
+        )
+
+        return None if isinstance(result, BaseException) else result[status_opcode.name.lower()]

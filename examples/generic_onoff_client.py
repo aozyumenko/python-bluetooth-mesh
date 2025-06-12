@@ -123,7 +123,6 @@ class SampleApplication(Application):
 
     async def run(self, addr, app_index, cmd, arguments):
         async with self:
-            print(self.uuid)
             await self.connect()
 
             if cmd == "get":

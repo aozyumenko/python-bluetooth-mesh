@@ -24,7 +24,7 @@
 This module implements Light Lightness mesh models, both clients and servers.
 """
 from functools import partial
-from typing import Any, Dict, Iterable, NamedTuple, Optional, Sequence, Tuple, Type
+from typing import Any, Dict, Iterable, NamedTuple, Optional, Tuple, Type
 
 from bluetooth_mesh.models.base import Model
 from bluetooth_mesh.messages.light.lightness import (
@@ -77,14 +77,14 @@ class LightLightnessClient(Model):
 
     async def get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightLightnessOpcode.LIGHT_LIGHTNESS_GET,
             status_opcode=LightLightnessOpcode.LIGHT_LIGHTNESS_STATUS,
@@ -93,10 +93,11 @@ class LightLightnessClient(Model):
 
     async def set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         lightness: int,
-        transition_time: float = 0,
+        transition_time: Optional[float] = None,
+        delay: Optional[float] = None,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
@@ -104,11 +105,11 @@ class LightLightnessClient(Model):
         params = dict(
             lightness=lightness,
             tid=self.tid(),
-            delay=0,
+            delay=delay,
             transition_time=transition_time,
         )
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightLightnessOpcode.LIGHT_LIGHTNESS_SET,
             status_opcode=LightLightnessOpcode.LIGHT_LIGHTNESS_STATUS,
@@ -122,16 +123,15 @@ class LightLightnessClient(Model):
         destination: int,
         app_index: int,
         lightness: int,
-        transition_time: float = 0,
-        *,
+        transition_time: Optional[float] = None,
         delay: Optional[float] = None,
+        *,
         retransmissions: Optional[int] = None,
         send_interval: Optional[float] = None
     ) -> None:
         params=dict(
             lightness=lightness,
             tid = self.tid(),
-            delay=remaining_delay,
             transition_time=transition_time,
         )
         await self.client_delay_set_unack(
@@ -146,14 +146,14 @@ class LightLightnessClient(Model):
 
     async def linear_get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightLightnessOpcode.LIGHT_LIGHTNESS_LINEAR_GET,
             status_opcode=LightLightnessOpcode.LIGHT_LIGHTNESS_LINEAR_STATUS,
@@ -162,10 +162,11 @@ class LightLightnessClient(Model):
 
     async def linear_set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         lightness: int,
-        transition_time: float = 0,
+        transition_time: Optional[float] = None,
+        delay: Optional[float] = None,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
@@ -173,11 +174,11 @@ class LightLightnessClient(Model):
         params=dict(
             lightness=lightness,
             tid=self.tid(),
-            delay=0,
+            delay=delay,
             transition_time=transition_time
         )
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightLightnessOpcode.LIGHT_LIGHTNESS_LINEAR_SET,
             status_opcode=LightLightnessOpcode.LIGHT_LIGHTNESS_LINEAR_STATUS,
@@ -191,16 +192,15 @@ class LightLightnessClient(Model):
         destination: int,
         app_index: int,
         lightness: int,
-        transition_time: float = 0,
-        *,
+        transition_time: Optional[float] = None,
         delay: Optional[float] = None,
+        *,
         retransmissions: Optional[int] = None,
         send_interval: Optional[float] = None
     ) -> None:
         params=dict(
             lightness=lightness,
             tid=self.tid(),
-            delay=remaining_delay,
             transition_time=transition_time,
         )
         await self.client_delay_set_unack(
@@ -215,14 +215,14 @@ class LightLightnessClient(Model):
 
     async def last_get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightLightnessOpcode.LIGHT_LIGHTNESS_LAST_GET,
             status_opcode=LightLightnessOpcode.LIGHT_LIGHTNESS_LAST_STATUS,
@@ -231,14 +231,14 @@ class LightLightnessClient(Model):
 
     async def default_get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightLightnessOpcode.LIGHT_LIGHTNESS_DEFAULT_GET,
             status_opcode=LightLightnessOpcode.LIGHT_LIGHTNESS_DEFAULT_STATUS,
@@ -247,7 +247,7 @@ class LightLightnessClient(Model):
 
     async def default_set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         lightness: int,
         *,
@@ -256,7 +256,7 @@ class LightLightnessClient(Model):
     ) -> Dict[int, Optional[Any]]:
         params=dict(lightness=lightness)
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightLightnessSetupOpcode.LIGHT_LIGHTNESS_SETUP_DEFAULT_SET,
             status_opcode=LightLightnessOpcode.LIGHT_LIGHTNESS_DEFAULT_STATUS,
@@ -286,14 +286,14 @@ class LightLightnessClient(Model):
 
     async def range_get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> None:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightLightnessOpcode.LIGHT_LIGHTNESS_RANGE_GET,
             status_opcode=LightLightnessOpcode.LIGHT_LIGHTNESS_RANGE_STATUS,
@@ -302,7 +302,7 @@ class LightLightnessClient(Model):
 
     async def range_set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         min_lightness: int,
         max_lightness: int,
@@ -315,7 +315,7 @@ class LightLightnessClient(Model):
             range_max=max_lightness,
         )
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightLightnessSetupOpcode.LIGHT_LIGHTNESS_SETUP_RANGE_SET,
             status_opcode=LightLightnessOpcode.LIGHT_LIGHTNESS_RANGE_STATUS,

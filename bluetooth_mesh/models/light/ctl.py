@@ -24,7 +24,7 @@
 This module implements Light CTL mesh models, both clients and servers.
 """
 from functools import partial
-from typing import Any, Dict, Iterable, NamedTuple, Optional, Sequence, Tuple, Type
+from typing import Any, Dict, Iterable, NamedTuple, Optional, Tuple, Type
 
 from bluetooth_mesh.models.base import Model
 from bluetooth_mesh.messages.light.ctl import (
@@ -93,28 +93,30 @@ class LightCTLClient(Model):
 
     async def get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightCTLOpcode.LIGHT_CTL_GET,
             status_opcode=LightCTLOpcode.LIGHT_CTL_STATUS,
             send_interval=send_interval,
-            timeout=timeout)
+            timeout=timeout,
+        )
 
     async def set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         ctl_lightness: int,
         ctl_temperature: int,
         ctl_delta_uv: int,
-        transition_time: float = 0,
+        delay: Optional[float] = None
+        transition_time: Optional[float] = None,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
@@ -124,11 +126,11 @@ class LightCTLClient(Model):
             ctl_temperature=ctl_temperature,
             ctl_delta_uv=ctl_delta_uv,
             tid=self.tid(),
-            delay=0,
+            delay=delay,
             transition_time=transition_time,
         )
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightCTLOpcode.LIGHT_CTL_SET,
             status_opcode=LightCTLOpcode.LIGHT_CTL_STATUS,
@@ -144,9 +146,9 @@ class LightCTLClient(Model):
         ctl_lightness: int,
         ctl_temperature: int,
         ctl_delta_uv: int,
-        transition_time: float = 0,
-        *,
+        transition_time: Optional[float] = None,
         delay: Optional[float] = None,
+        *,
         retransmissions: Optional[int] = None,
         send_interval: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
@@ -169,27 +171,29 @@ class LightCTLClient(Model):
 
     async def temperature_get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightCTLOpcode.LIGHT_CTL_TEMPERATURE_GET,
             status_opcode=LightCTLOpcode.LIGHT_CTL_TEMPERATURE_STATUS,
             send_interval=send_interval,
-            timeout=timeout)
+            timeout=timeout,
+        )
 
     async def temperature_set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         ctl_temperature: int,
         ctl_delta_uv: int,
-        transition_time: float = 0,
+        transition_time: Optional[float] = None,
+        delay: Optional[float] = None,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
@@ -198,11 +202,11 @@ class LightCTLClient(Model):
             ctl_temperature=ctl_temperature,
             ctl_delta_uv=ctl_delta_uv,
             tid=self.tid(),
-            delay=0,
+            delay=delay,
             transition_time=transition_time,
         )
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightCTLOpcode.LIGHT_CTL_TEMPERATURE_SET,
             status_opcode=LightCTLOpcode.LIGHT_CTL_TEMPERATURE_STATUS,
@@ -217,9 +221,9 @@ class LightCTLClient(Model):
         app_index: int,
         ctl_temperature: int,
         ctl_delta_uv: int,
-        transition_time: float = 0,
-        *,
+        transition_time: Optional[float] = None,
         delay: Optional[float] = None,
+        *,
         retransmissions: Optional[int] = None,
         send_interval: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
@@ -227,7 +231,7 @@ class LightCTLClient(Model):
             ctl_temperature=ctl_temperature,
             ctl_delta_uv=ctl_delta_uv,
             tid=self.tid(),
-            delay=0,
+            delay=delay,
             transition_time=transition_time,
         )
         await self.client_delay_set_unack(
@@ -242,23 +246,24 @@ class LightCTLClient(Model):
 
     async def temperature_range_get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightCTLOpcode.LIGHT_CTL_TEMPERATURE_RANGE_GET,
             status_opcode=LightCTLOpcode.LIGHT_CTL_TEMPERATURE_RANGE_STATUS,
             send_interval=send_interval,
-            timeout=timeout)
+            timeout=timeout
+        )
 
     async def temperature_range_set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         range_min: int,
         range_max: int,
@@ -271,7 +276,7 @@ class LightCTLClient(Model):
             range_max=range_max,
         )
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightCTLSetupOpcode.LIGHT_CTL_SETUP_TEMPERATURE_RANGE_SET,
             status_opcode=LightCTLOpcode.LIGHT_CTL_TEMPERATURE_RANGE_STATUS,
@@ -305,23 +310,24 @@ class LightCTLClient(Model):
 
     async def default_get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightCTLOpcode.LIGHT_CTL_TEMPERATURE_DEFAULT_GET,
             status_opcode=LightCTLOpcode.LIGHT_CTL_TEMPERATURE_DEFAULT_STATUS,
             send_interval=send_interval,
-            timeout=timeout)
+            timeout=timeout,
+        )
 
     async def default_set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         ctl_lightness: int,
         ctl_temperature: int,
@@ -336,7 +342,7 @@ class LightCTLClient(Model):
             ctl_delta_uv=ctl_delta_uv,
         )
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightCTLSetupOpcode.LIGHT_CTL_SETUP_TEMPERATURE_DEFAULT_SET,
             status_opcode=LightCTLOpcode.LIGHT_CTL_TEMPERATURE_DEFAULT_STATUS,

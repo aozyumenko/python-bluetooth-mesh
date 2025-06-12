@@ -23,7 +23,7 @@
 This module implements GenericBattery mesh model, both client and server
 """
 from functools import partial
-from typing import Any, Dict, Iterable, NamedTuple, Optional, Sequence, Tuple, Type
+from typing import Any, Dict, Iterable, NamedTuple, Optional, Tuple, Type
 
 from bluetooth_mesh.models.base import Model
 from bluetooth_mesh.messages.generic.battery import GenericBatteryOpcode
@@ -55,16 +55,17 @@ class GenericBatteryClient(Model):
 
     async def get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=GenericBatteryOpcode.GENERIC_BATTERY_GET,
             status_opcode=GenericBatteryOpcode.GENERIC_BATTERY_STATUS,
             send_interval=send_interval,
-            timeout=timeout)
+            timeout=timeout,
+        )

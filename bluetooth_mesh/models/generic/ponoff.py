@@ -23,7 +23,7 @@
 This module implements Generic OnPowerUp models, both clients and servers
 """
 from functools import partial
-from typing import Any, Dict, Iterable, NamedTuple, Optional, Sequence, Tuple, Type
+from typing import Any, Dict, Iterable, NamedTuple, Optional, Tuple, Type
 
 from bluetooth_mesh.models.base import Model
 from bluetooth_mesh.messages.generic.ponoff import (
@@ -69,14 +69,14 @@ class GenericPowerOnOffClient(Model):
 
     async def get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=GenericPowerOnOffOpcode.GENERIC_ON_POWERUP_GET,
             status_opcode= GenericPowerOnOffOpcode.GENERIC_ON_POWERUP_STATUS,
@@ -85,7 +85,7 @@ class GenericPowerOnOffClient(Model):
 
     async def set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         on_power_up: GenericOnPowerUp,
         *,
@@ -96,7 +96,7 @@ class GenericPowerOnOffClient(Model):
             on_power_up=on_power_up,
         )
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=GenericPowerOnOffSetupOpcode.GENERIC_ON_POWERUP_SET,
             status_opcode=GenericPowerOnOffOpcode.GENERIC_ON_POWERUP_STATUS,

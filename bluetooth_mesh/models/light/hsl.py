@@ -23,7 +23,7 @@
 This module implements Light HSL mesh models, both clients and servers.
 """
 from functools import partial
-from typing import Any, Dict, Iterable, NamedTuple, Optional, Sequence, Tuple, Type
+from typing import Any, Dict, Iterable, NamedTuple, Optional, Tuple, Type
 
 from bluetooth_mesh.models.base import Model
 from bluetooth_mesh.messages.light.hsl import (
@@ -106,28 +106,30 @@ class LightHSLClient(Model):
 
     async def get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightHSLOpcode.LIGHT_HSL_GET,
             status_opcode=LightHSLOpcode.LIGHT_HSL_STATUS,
             send_interval=send_interval,
-            timeout=timeout)
+            timeout=timeout
+        )
 
     async def set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         hsl_lightness: int,
         hsl_hue: int,
         hsl_saturation: int,
-        transition_time: float = 0,
+        transition_time: Optional[float] = None,
+        delay: Optional[float] = None,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
@@ -137,11 +139,11 @@ class LightHSLClient(Model):
             hsl_hue=hsl_hue,
             hsl_saturation=hsl_saturation,
             tid=self.tid(),
-            delay=0,
+            delay=delay,
             transition_time=transition_time,
         )
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightHSLOpcode.LIGHT_HSL_SET,
             status_opcode=LightHSLOpcode.LIGHT_HSL_STATUS,
@@ -157,9 +159,9 @@ class LightHSLClient(Model):
         hsl_lightness: int,
         hsl_hue: int,
         hsl_saturation: int,
-        transition_time: float = 0,
-        *,
+        transition_time: Optional[float] = None,
         delay: Optional[float] = None,
+        *,
         retransmissions: Optional[int] = None,
         send_interval: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
@@ -182,42 +184,45 @@ class LightHSLClient(Model):
 
     async def target_get(
         self,
-        nodes: Sequence[int],
-        app_index: int,
-        *,
-        send_interval: float = 0.1,
-        timeout: Optional[float] = None,
-    ) -> Dict[int, Optional[Any]]:
-        return await self.client_simple_get(
-            nodes=nodes,
-            app_index=app_index,
-            request_opcode=LightHSLOpcode.LIGHT_HSL_TARGET_GET,
-            status_opcode=LightHSLOpcode.LIGHT_HSL_TARGET_STATUS,
-            send_interval=send_interval,
-            timeout=timeout)
-
-    async def hue_get(
-        self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
+            app_index=app_index,
+            request_opcode=LightHSLOpcode.LIGHT_HSL_TARGET_GET,
+            status_opcode=LightHSLOpcode.LIGHT_HSL_TARGET_STATUS,
+            send_interval=send_interval,
+            timeout=timeout,
+        )
+
+    async def hue_get(
+        self,
+        destination: int,
+        app_index: int,
+        *,
+        send_interval: Optional[float] = None,
+        timeout: Optional[float] = None
+    ) -> Dict[int, Optional[Any]]:
+        return await self.client_simple_get(
+            destination=destination,
             app_index=app_index,
             request_opcode=LightHSLOpcode.LIGHT_HSL_HUE_GET,
             status_opcode=LightHSLOpcode.LIGHT_HSL_HUE_STATUS,
             send_interval=send_interval,
-            timeout=timeout)
+            timeout=timeout
+        )
 
     async def hue_set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         hue: int,
-        transition_time: float = 0,
+        transition_time: Optional[float] = None,
+        delay: Optional[float] = None,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
@@ -226,10 +231,10 @@ class LightHSLClient(Model):
             hue=hue,
             tid=self.tid(),
             transition_time=transition_time,
-            delay=0,
+            delay=None,
         )
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightHSLOpcode.LIGHT_HSL_HUE_SET,
             status_opcode=LightHSLOpcode.LIGHT_HSL_HUE_STATUS,
@@ -243,9 +248,9 @@ class LightHSLClient(Model):
         destination: int,
         app_index: int,
         hue: int,
-        transition_time: float = 0,
-        *,
+        transition_time: Optional[float] = None,
         delay: Optional[float] = None,
+        *,
         retransmissions: Optional[int] = None,
         send_interval: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
@@ -266,26 +271,28 @@ class LightHSLClient(Model):
 
     async def saturation_get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightHSLOpcode.LIGHT_HSL_SATURATION_GET,
             status_opcode=LightHSLOpcode.LIGHT_HSL_SATURATION_STATUS,
             send_interval=send_interval,
-            timeout=timeout)
+            timeout=timeout,
+        )
 
     async def saturation_set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         saturation: int,
-        transition_time: float = 0,
+        transition_time: Optional[float] = None,
+        delay: Optional[float] = None,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
@@ -294,10 +301,10 @@ class LightHSLClient(Model):
             saturation=saturation,
             tid=self.tid(),
             transition_time=transition_time,
-            delay=0,
+            delay=delay,
         )
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightHSLOpcode.LIGHT_HSL_SATURATION_SET,
             status_opcode=LightHSLOpcode.LIGHT_HSL_SATURATION_STATUS,
@@ -311,9 +318,9 @@ class LightHSLClient(Model):
         destination: int,
         app_index: int,
         saturation: int,
-        transition_time: float = 0,
-        *,
+        transition_time: Optional[float] = None,
         delay: Optional[float] = None,
+        *,
         retransmissions: Optional[int] = None,
         send_interval: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
@@ -334,23 +341,24 @@ class LightHSLClient(Model):
 
     async def default_get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightHSLOpcode.LIGHT_HSL_DEFAULT_GET,
             status_opcode=LightHSLOpcode.LIGHT_HSL_DEFAULT_STATUS,
             send_interval=send_interval,
-            timeout=timeout)
+            timeout=timeout
+        )
 
     async def default_set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         hsl_lightness: int,
         hsl_hue: int,
@@ -365,7 +373,7 @@ class LightHSLClient(Model):
             hsl_saturation=hsl_saturation,
         )
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightHSLSetupOpcode.LIGHT_HSL_SETUP_DEFAULT_SET,
             status_opcode=LightHSLOpcode.LIGHT_HSL_DEFAULT_STATUS,
@@ -401,23 +409,24 @@ class LightHSLClient(Model):
 
     async def range_get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightHSLOpcode.LIGHT_HSL_RANGE_GET,
             status_opcode=LightHSLOpcode.LIGHT_HSL_RANGE_STATUS,
             send_interval=send_interval,
-            timeout=timeout)
+            timeout=timeout,
+        )
 
     async def range_set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         hue_range_min: int,
         hue_range_max: int,
@@ -434,7 +443,7 @@ class LightHSLClient(Model):
             saturation_range_max=saturation_range_max,
         )
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=LightHSLSetupOpcode.LIGHT_HSL_SETUP_RANGE_SET,
             status_opcode=LightHSLOpcode.LIGHT_HSL_RANGE_STATUS,

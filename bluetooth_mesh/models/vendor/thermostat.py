@@ -138,9 +138,9 @@ class VendorModel(Model):
 
 
     # implementation of simple client *get command
-    async def client_simple_get(
+    async def get_param(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         request_subopcode: IntEnum,
         status_subopcode: IntEnum,
@@ -148,46 +148,36 @@ class VendorModel(Model):
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
-        requests = {
-            node: partial(
-                self.send_subapp,
-                destination=node,
-                app_index=app_index,
-                subopcode=request_subopcode,
-                params=dict(),
-            )
-            for node in nodes
-        }
+        request = partial(
+            self.send_subapp,
+            destination=destination,
+            app_index=app_index,
+            subopcode=request_subopcode,
+            params=dict(),
+        )
 
-        statuses = {
-            node: self.expect_subapp(
-                source=node,
-                app_index=app_index,
-                destination=None,
-                subopcode=status_subopcode,
-                params=dict(),
-            )
-            for node in nodes
-        }
+        status = self.expect_subapp(
+            source=destination,
+            app_index=app_index,
+            destination=None,
+            subopcode=status_subopcode,
+            params=dict(),
+        )
 
-        results = await self.bulk_query(
-            requests,
-            statuses,
+        result = await self.query(
+            request,
+            status,
             send_interval=send_interval,
             timeout=timeout,
         )
 
-        return {
-            node: None if isinstance(result, BaseException)
-            else result[status_subopcode.name.lower()]
-            for node, result in results.items()
-        }
+        return None if isinstance(result, BaseException) else result[status_subopcode.name.lower()]
 
 
     # implementation of simple client *set vendor command
-    async def client_simple_set(
+    async def set_param(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         request_subopcode: IntEnum,
         status_subopcode: IntEnum,
@@ -196,40 +186,30 @@ class VendorModel(Model):
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None,
     ) -> Dict[int, Optional[Any]]:
-        requests = {
-            node: partial(
-                self.send_subapp,
-                destination=node,
-                app_index=app_index,
-                subopcode=request_subopcode,
-                params=params,
-            )
-            for node in nodes
-        }
+        request = partial(
+            self.send_subapp,
+            destination=destination,
+            app_index=app_index,
+            subopcode=request_subopcode,
+            params=params,
+        )
 
-        statuses = {
-            node: self.expect_subapp(
-                source=node,
-                app_index=app_index,
-                destination=None,
-                subopcode=status_subopcode,
-                params=dict(),
-            )
-            for node in nodes
-        }
+        status = self.expect_subapp(
+            source=destination,
+            app_index=app_index,
+            destination=None,
+            subopcode=status_subopcode,
+            params=dict(),
+        )
 
-        results = await self.bulk_query(
-            requests,
-            statuses,
+        result = await self.bulk_query(
+            request,
+            status,
             send_interval=send_interval,
             timeout=timeout,
         )
 
-        return {
-            node: None if isinstance(result, BaseException)
-            else result[status_subopcode.name.lower()]
-            for node, result in results.items()
-        }
+        return None if isinstance(result, BaseException) else result[status_subopcode.name.lower()]
 
 
 
@@ -254,14 +234,14 @@ class ThermostatClient(VendorModel):
 
     async def get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
-        return await self.client_simple_get(
-            nodes=nodes,
+        return await self.get_param(
+            destination=destination,
             app_index=app_index,
             request_subopcode=ThermostatSubOpcode.THERMOSTAT_GET,
             status_subopcode=ThermostatSubOpcode.THERMOSTAT_STATUS,
@@ -270,7 +250,7 @@ class ThermostatClient(VendorModel):
 
     async def set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         onoff: int,
         mode: int,
@@ -286,8 +266,8 @@ class ThermostatClient(VendorModel):
             temperature=temperature,
             tid=self.tid(),
         )
-        return await self.client_simple_set(
-            nodes=nodes,
+        return await self.set_param(
+            destination=destination,
             app_index=app_index,
             request_subopcode=ThermostatSubOpcode.THERMOSTAT_SET,
             status_subopcode=ThermostatSubOpcode.THERMOSTAT_STATUS,
@@ -297,14 +277,14 @@ class ThermostatClient(VendorModel):
 
     async def range_get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
-        return await self.client_simple_get(
-            nodes=nodes,
+        return await self.get_param(
+            destination=destination,
             app_index=app_index,
             request_subopcode=ThermostatSubOpcode.THERMOSTAT_RANGE_GET,
             status_subopcode=ThermostatSubOpcode.THERMOSTAT_RANGE_STATUS,

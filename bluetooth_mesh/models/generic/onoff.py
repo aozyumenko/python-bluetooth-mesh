@@ -24,7 +24,7 @@
 This module implements GenericOnOff mesh model, both client and server
 """
 from functools import partial
-from typing import Any, Dict, Iterable, NamedTuple, Optional, Sequence, Tuple, Type
+from typing import Any, Dict, Iterable, NamedTuple, Optional, Tuple, Type
 
 from bluetooth_mesh.models.base import Model
 from bluetooth_mesh.messages.generic.onoff import GenericOnOffOpcode
@@ -58,26 +58,28 @@ class GenericOnOffClient(Model):
 
     async def get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=GenericOnOffOpcode.GENERIC_ONOFF_GET,
             status_opcode=GenericOnOffOpcode.GENERIC_ONOFF_STATUS,
             send_interval=send_interval,
-            timeout=timeout)
+            timeout=timeout,
+        )
 
     async def set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         onoff: int,
-        transition_time: float = 0,
+        transition_time: Optional[float] = None,
+        delay: Optional[float] = None,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
@@ -86,10 +88,10 @@ class GenericOnOffClient(Model):
             onoff=onoff,
             tid=self.tid(),
             transition_time=transition_time,
-            delay=0,
+            delay=delay,
         )
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=GenericOnOffOpcode.GENERIC_ONOFF_SET,
             status_opcode=GenericOnOffOpcode.GENERIC_ONOFF_STATUS,
@@ -103,9 +105,9 @@ class GenericOnOffClient(Model):
         destination: int,
         app_index: int,
         onoff: int,
-        transition_time: float = 0,
-        *,
+        transition_time: Optional[float] = None,
         delay: Optional[float] = None,
+        *,
         retransmissions: Optional[int] = None,
         send_interval: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:

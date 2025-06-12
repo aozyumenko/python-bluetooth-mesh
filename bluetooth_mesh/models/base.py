@@ -374,8 +374,8 @@ class Model:
         request: Callable[[], Awaitable[None]],
         status: asyncio.Future,
         *,
-        send_interval: float = 0.2,
-        timeout: float = 2.0,
+        send_interval: Optional[float] = None,
+        timeout: Optional[float] = None,
     ) -> Any:
         """
         Query
@@ -390,12 +390,12 @@ class Model:
         async def sender():
             while not status.done():
                 await request()
-                await asyncio.sleep(send_interval)
+                await asyncio.sleep(send_interval or self.SEND_INTERVAL)
 
         sender = asyncio.ensure_future(sender())
 
         try:
-            await asyncio.wait_for(status, timeout=timeout)
+            await asyncio.wait_for(status, timeout=timeout or self.TIMEOUT)
         finally:
             with suppress(asyncio.CancelledError):
                 sender.cancel()
@@ -561,7 +561,7 @@ class Model:
     # implementation of simple client *get command
     async def client_simple_get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         request_opcode: IntEnum,
         status_opcode: IntEnum,
@@ -569,45 +569,35 @@ class Model:
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
-        requests = {
-            node: partial(
-                self.send_app,
-                destination=node,
-                app_index=app_index,
-                opcode=request_opcode,
-                params=dict(),
-            )
-            for node in nodes
-        }
+        request = partial(
+            self.send_app,
+            destination=destination,
+            app_index=app_index,
+            opcode=request_opcode,
+            params=dict(),
+        )
 
-        statuses = {
-            node: self.expect_app(
-                source=node,
-                app_index=app_index,
-                destination=None,
-                opcode=status_opcode,
-                params=dict(),
-            )
-            for node in nodes
-        }
+        status = self.expect_app(
+            source=destination,
+            app_index=app_index,
+            destination=None,
+            opcode=status_opcode,
+            params=dict(),
+        )
 
-        results = await self.bulk_query(
-            requests,
-            statuses,
+        result = await self.query(
+            request,
+            status,
             send_interval=send_interval,
             timeout=timeout,
         )
 
-        return {
-            node: None if isinstance(result, BaseException)
-            else result[status_opcode.name.lower()]
-            for node, result in results.items()
-        }
+        return None if isinstance(result, BaseException) else result[status_opcode.name.lower()]
 
     # implementation of simple client *set command
     async def client_simple_set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         request_opcode: IntEnum,
         status_opcode: IntEnum,
@@ -616,40 +606,30 @@ class Model:
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None,
     ) -> Dict[int, Optional[Any]]:
-        requests = {
-            node: partial(
-                self.send_app,
-                destination=node,
-                app_index=app_index,
-                opcode=request_opcode,
-                params=params,
-            )
-            for node in nodes
-        }
+        request = partial(
+            self.send_app,
+            destination=destination,
+            app_index=app_index,
+            opcode=request_opcode,
+            params=params,
+        )
 
-        statuses = {
-            node: self.expect_app(
-                source=node,
-                app_index=app_index,
-                destination=None,
-                opcode=status_opcode,
-                params=dict(),
-            )
-            for node in nodes
-        }
+        status = self.expect_app(
+            source=destination,
+            app_index=app_index,
+            destination=None,
+            opcode=status_opcode,
+            params=dict(),
+        )
 
-        results = await self.bulk_query(
-            requests,
-            statuses,
+        result = await self.query(
+            request,
+            status,
             send_interval=send_interval,
             timeout=timeout,
         )
 
-        return {
-            node: None if isinstance(result, BaseException)
-            else result[status_opcode.name.lower()]
-            for node, result in results.items()
-        }
+        return None if isinstance(result, BaseException) else result[status_opcode.name.lower()]
 
     async def client_simple_set_unack(
         self,

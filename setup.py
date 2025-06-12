@@ -27,7 +27,7 @@ with open("README.rst", "r") as f:
 # fmt: off
 setup(
     name='aozyumenko-bluetooth-mesh',
-    version='1.2.3',
+    version='1.3.0',
     author_email='a.ozumenko@gmail.com',
     description=(
         'Bluetooth mesh for Python'
@@ -36,7 +36,7 @@ setup(
     long_description_content_type="text/x-rst",
     url='https://github.com/aozyumenko/python-bluetooth-mesh',
     packages=find_packages(exclude=('bluetooth_mesh.apps', 'bluetooth_mesh.test', 'test*', )),
-    python_requires='>=3.6.0,<3.13.0',
+    python_requires='>=3.6.0,<3.14.0',
     setup_requires=[
         'pytest-runner',
     ],

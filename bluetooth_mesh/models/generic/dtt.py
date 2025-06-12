@@ -23,7 +23,7 @@
 This module implements Generic Default Transition Time mesh model, both client and server
 """
 from functools import partial
-from typing import Any, Dict, Iterable, NamedTuple, Optional, Sequence, Tuple, Type
+from typing import Any, Dict, Iterable, NamedTuple, Optional, Tuple, Type
 
 
 from bluetooth_mesh.models.base import Model
@@ -58,14 +58,14 @@ class GenericDTTClient(Model):
 
     async def get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=GenericDTTOpcode.GENERIC_DTT_GET,
             status_opcode=GenericDTTOpcode.GENERIC_DTT_STATUS,
@@ -74,7 +74,7 @@ class GenericDTTClient(Model):
 
     async def set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         transition_time: float,
         *,
@@ -85,7 +85,7 @@ class GenericDTTClient(Model):
             transition_time=transition_time,
         )
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=GenericDTTOpcode.GENERIC_DTT_SET,
             status_opcode=GenericDTTOpcode.GENERIC_DTT_STATUS,

@@ -23,7 +23,7 @@
 """
 This module implements Time mesh models, both clients and servers.
 """
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, Optional
 from datetime import datetime, timedelta
 
 from bluetooth_mesh.models.base import Model
@@ -152,14 +152,14 @@ class TimeClient(Model):
 
     async def get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=TimeOpcode.TIME_GET,
             status_opcode=TimeOpcode.TIME_STATUS,
@@ -170,14 +170,14 @@ class TimeClient(Model):
 
     async def time_zone_get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=TimeOpcode.TIME_ZONE_GET,
             status_opcode=TimeOpcode.TIME_ZONE_STATUS,
@@ -188,14 +188,14 @@ class TimeClient(Model):
 
     async def tai_utc_delta_get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=TimeOpcode.TAI_UTC_DELTA_GET,
             status_opcode=TimeOpcode.TAI_UTC_DELTA_STATUS,
@@ -206,7 +206,7 @@ class TimeClient(Model):
 
     async def set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         date: datetime,
         tai_utc_delta: timedelta,
@@ -223,7 +223,7 @@ class TimeClient(Model):
             tai_utc_delta=tai_utc_delta,
         )
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=TimeOpcode.TIME_SET,
             status_opcode=TimeOpcode.TIME_STATUS,
@@ -235,7 +235,7 @@ class TimeClient(Model):
 
     async def time_zone_set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         time_zone_offset_current: timedelta,
         time_zone_offset_new: timedelta,
@@ -250,7 +250,7 @@ class TimeClient(Model):
             tai_of_zone_change=tai_of_zone_change,
         )
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=TimeOpcode.TIME_ZONE_SET,
             status_opcode=TimeOpcode.TIME_ZONE_STATUS,
@@ -262,7 +262,7 @@ class TimeClient(Model):
 
     async def tai_utc_delta_set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         tai_utc_delta_current: int,
         tai_utc_delta_new: int,
@@ -277,7 +277,7 @@ class TimeClient(Model):
             tai_of_delta_change=tai_of_delta_change,
         )
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=TimeOpcode.TAI_UTC_DELTA_SET,
             status_opcode=TimeOpcode.TAI_UTC_DELTA_STATUS,
@@ -289,14 +289,14 @@ class TimeClient(Model):
 
     async def time_role_get(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         *,
         send_interval: Optional[float] = None,
         timeout: Optional[float] = None
     ) -> Dict[int, Optional[Any]]:
         return await self.client_simple_get(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=TimeOpcode.TIME_ROLE_GET,
             status_opcode=TimeOpcode.TIME_ROLE_STATUS,
@@ -307,7 +307,7 @@ class TimeClient(Model):
 
     async def time_role_set(
         self,
-        nodes: Sequence[int],
+        destination: int,
         app_index: int,
         time_role: TimeRole,
         *,
@@ -316,7 +316,7 @@ class TimeClient(Model):
     ):
         params=dict(time_role=time_role)
         return await self.client_simple_set(
-            nodes=nodes,
+            destination=destination,
             app_index=app_index,
             request_opcode=TimeOpcode.TIME_ROLE_SET,
             status_opcode=TimeOpcode.TIME_ROLE_STATUS,
