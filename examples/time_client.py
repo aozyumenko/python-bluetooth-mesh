@@ -23,6 +23,7 @@ from bluetooth_mesh.models.generic.onoff import GenericOnOffClient
 from bluetooth_mesh.models.generic.level import GenericLevelClient
 from bluetooth_mesh.models.generic.dtt import GenericDTTClient
 from bluetooth_mesh.models.generic.ponoff import GenericPowerOnOffClient
+from bluetooth_mesh.models.generic.battery import GenericBatteryClient
 from bluetooth_mesh.models.sensor import SensorClient
 from bluetooth_mesh.models.time import TimeClient
 from bluetooth_mesh.models.scene import SceneClient
@@ -31,7 +32,7 @@ from bluetooth_mesh.models.light.ctl import LightCTLClient
 from bluetooth_mesh.models.light.hsl import LightHSLClient
 
 
-G_TIMEOUT = 5
+G_PATH = "/ru/stdio/vendor_thermostat_" + os.environ['USER']
 
 log = logging.getLogger()
 
@@ -45,6 +46,7 @@ class MainElement(Element):
         GenericOnOffClient,
         GenericDTTClient,
         GenericPowerOnOffClient,
+        GenericBatteryClient,
         SceneClient,
         GenericLevelClient,
         SensorClient,
@@ -67,37 +69,21 @@ class SampleApplication(Application):
     CRPL = 32768
     PATH = "/com/silvair/sample_" + os.environ['USER']
 
-    @property
-    def iv_index(self):
-        return 0
-
 
     async def get(self, addr, app_index, arguments):
         client = self.elements[0][TimeClient]
-        result = await client.get(
-            [addr],
-            app_index=app_index,
-            timeout=G_TIMEOUT
-        )
-        print(result[addr])
+        result = await client.get(addr, app_index=app_index)
+        print(result)
 
     async def time_zone_get(self, addr, app_index, arguments):
         client = self.elements[0][TimeClient]
-        result = await client.time_zone_get(
-            [addr],
-            app_index=app_index,
-            timeout=G_TIMEOUT
-        )
-        print(result[addr])
+        result = await client.time_zone_get(addr, app_index=app_index)
+        print(result)
 
     async def tai_utc_delta_get(self, addr, app_index, arguments):
         client = self.elements[0][TimeClient]
-        result = await client.tai_utc_delta_get(
-            [addr],
-            app_index=app_index,
-            timeout=G_TIMEOUT
-        )
-        print(result[addr])
+        result = await client.tai_utc_delta_get(addr, app_index=app_index)
+        print(result)
 
     async def set(self, addr, app_index, arguments):
         system_timezone_offset = time.timezone * -1
@@ -106,22 +92,19 @@ class SampleApplication(Application):
 
         client = self.elements[0][TimeClient]
         result = await client.set(
-            [addr],
+            addr,
             app_index=app_index,
             date=date,
             tai_utc_delta=timedelta(seconds=CURRENT_TAI_UTC_DELTA),
             uncertainty=timedelta(0),
-            time_authority=True,
-            timeout=G_TIMEOUT
+            time_authority=True
         )
-        print(result[addr])
+        print(result)
 
 
 
-    async def run(self, token, addr, app_index, cmd, arguments):
+    async def run(self, addr, app_index, cmd, arguments):
         async with self:
-            self.token_ring.token = token
-
             await self.connect()
 
             if cmd == "get":
@@ -140,10 +123,10 @@ def main():
     Time Server Sample Application
 
     Usage:
-        time_server.py [-V] -t <token> -a <address> get
-        time_server.py [-V] -t <token> -a <address> time_zone_get
-        time_server.py [-V] -t <token> -a <address> tai_utc_delta_get
-        time_server.py [-V] -t <token> -a <address> set
+        time_server.py [-V] -a <address> get
+        time_server.py [-V] -a <address> time_zone_get
+        time_server.py [-V] -a <address> tai_utc_delta_get
+        time_server.py [-V] -a <address> set
         time_server.py [-h | --help]
         time_server.py --version
 
@@ -160,8 +143,12 @@ def main():
     if arguments['-V']:
         logging.basicConfig(level=logging.DEBUG)
 
-    token = int(arguments['-t'], 16)
-    addr = int(arguments['-a'], 16)
+    if arguments['-a']:
+        addr = int(arguments['-a'], 16)
+    else:
+        print(doc)
+        exit(-1)
+
     app_index = 0
     cmd = None
 
@@ -177,11 +164,12 @@ def main():
         print(doc)
         exit(-1)
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     app = SampleApplication(loop)
 
     with suppress(KeyboardInterrupt):
-        loop.run_until_complete(app.run(token, addr, app_index, cmd, arguments))
+        loop.run_until_complete(app.run(addr, app_index, cmd, arguments))
 
 
 if __name__ == '__main__':

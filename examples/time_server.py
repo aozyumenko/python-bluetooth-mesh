@@ -21,9 +21,6 @@ from bluetooth_mesh.messages.time import TimeOpcode, TimeRole, CURRENT_TAI_UTC_D
 from bluetooth_mesh.models.time import TimeServer, TimeSetupServer
 
 
-G_SEND_INTERVAL = 0.5
-G_TIMEOUT = 3
-G_JSON_CONF = "time_server_" + os.environ['USER'] +".json"
 G_PATH = "/ru/stdio/time_server_" + os.environ['USER']
 
 log = logging.getLogger()
@@ -50,33 +47,13 @@ class SampleApplication(Application):
     CRPL = 32768
     PATH = G_PATH
 
-    @property
-    def iv_index(self):
-        return 0
-
-
-    def token_load(self):
-        try:
-            with open(G_JSON_CONF, "r") as tokenfile:
-                try:
-                    return json.load(tokenfile)
-                except (json.JSONDecodeError, EOFError):
-                    return dict({'user': os.environ['USER'], 'token': None, 'path': self.PATH})
-        except FileNotFoundError:
-            return dict({'user': os.environ['USER'], 'token': None, 'path': self.PATH})
-
-    def token_save(self, data):
-        with open(G_JSON_CONF, "w") as tokenfile:
-            return json.dump(data, tokenfile)
 
     def display_numeric(self, type: str, number: int):
          print("request key, number: %d" % (number))
 
-    async def mesh_join(self, token_conf):
+    async def mesh_join(self):
         print("Join start...")
         token = await self.join()
-        token_conf['token'] = token
-        self.token_save(token_conf)
 
     async def mesh_leave(self):
         await self.connect()
@@ -187,14 +164,8 @@ class SampleApplication(Application):
 
     async def run(self, cmd, arguments):
         async with self:
-            token_conf = self.token_load()
-            if 'token' in token_conf and token_conf['token'] is not None:
-                self.token_ring.token = token_conf['token']
-            if 'path' in token_conf:
-                self.PATH = token_conf['path']
-
             if cmd == "join":
-                await self.mesh_join(token_conf)
+                await self.mesh_join()
             elif cmd == "leave":
                 await self.mesh_leave()
             elif cmd == "start":
@@ -226,7 +197,8 @@ def main():
     if arguments['-V']:
         logging.basicConfig(level=logging.DEBUG)
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     app = SampleApplication(loop)
 
     if arguments['join']:

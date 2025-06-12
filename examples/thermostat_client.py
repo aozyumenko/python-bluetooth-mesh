@@ -61,10 +61,6 @@ class SampleApplication(Application):
     CRPL = 32768
     PATH = G_PATH
 
-    @property
-    def path(self) -> str:
-        return G_PATH
-
 
     def display_numeric(self, type: str, number: int):
          print("request key, number: %d" % (number))
@@ -184,7 +180,6 @@ def main():
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-
     app = SampleApplication(loop)
 
     with suppress(KeyboardInterrupt):
