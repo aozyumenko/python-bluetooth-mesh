@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import os
 import logging
 import asyncio
 import secrets
@@ -20,6 +21,7 @@ from bluetooth_mesh.models.generic.onoff import GenericOnOffClient
 from bluetooth_mesh.models.generic.level import GenericLevelClient
 from bluetooth_mesh.models.generic.dtt import GenericDTTClient
 from bluetooth_mesh.models.generic.ponoff import GenericPowerOnOffClient
+from bluetooth_mesh.models.generic.battery import GenericBatteryClient
 from bluetooth_mesh.models.sensor import SensorClient
 from bluetooth_mesh.models.time import TimeClient
 from bluetooth_mesh.models.scene import SceneClient
@@ -28,9 +30,11 @@ from bluetooth_mesh.models.light.ctl import LightCTLClient
 from bluetooth_mesh.models.light.hsl import LightHSLClient
 
 
-G_TIMEOUT = 5
+
+G_PATH = "/com/silvair/sample_" + os.environ['USER']
 
 log = logging.getLogger()
+
 
 
 class MainElement(Element):
@@ -43,6 +47,7 @@ class MainElement(Element):
         GenericPowerOnOffClient,
         SceneClient,
         GenericLevelClient,
+        GenericBatteryClient,
         SensorClient,
         LightLightnessClient,
         LightCTLClient,
@@ -61,75 +66,83 @@ class SampleApplication(Application):
     CAPABILITIES = [Capabilities.OUT_NUMERIC]
 
     CRPL = 32768
-    PATH = "/com/silvair/sample"
+    PATH = G_PATH
 
-    @property
-    def iv_index(self):
-        return 0
 
     async def get(self, addr, app_index, arguments):
         client = self.elements[0][SceneClient]
-        result = await client.get([addr], app_index=app_index,
-                                  timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.get(addr, app_index=app_index)
+        print(result)
 
     async def recall(self, addr, app_index, arguments):
         client = self.elements[0][SceneClient]
         scene_number = int(arguments['<number>'])
-        transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
-        result = await client.recall([addr], app_index=app_index,
-                                     scene_number=scene_number,
-                                     transition_time=transition_time,
-                                     timeout=G_TIMEOUT)
-        print(result[addr])
+        transition_time = float(arguments['--transition']) if arguments['--transition'] else None
+        result = await client.recall(
+            addr,
+            app_index=app_index,
+            scene_number=scene_number,
+            transition_time=transition_time
+        )
+        print(result)
 
     async def recall_unack(self, addr, app_index, arguments):
         client = self.elements[0][SceneClient]
         scene_number = int(arguments['<number>'])
-        transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
-        await client.recall_unack(addr, app_index=app_index,
-                                  scene_number=scene_number,
-                                  transition_time=transition_time)
+        transition_time = float(arguments['--transition']) if arguments['--transition'] else None
+        await client.recall_unack(
+            addr,
+            app_index=app_index,
+            scene_number=scene_number,
+            transition_time=transition_time
+        )
 
     async def register_get(self, addr, app_index, arguments):
         client = self.elements[0][SceneClient]
-        result = await client.register_get([addr], app_index=app_index,
-                                           timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.register_get(addr, app_index=app_index)
+        print(result)
 
     async def store(self, addr, app_index, arguments):
         client = self.elements[0][SceneClient]
         scene_number = int(arguments['<number>'])
-        result = await client.store([addr], app_index=app_index,
-                                     scene_number=scene_number,
-                                     timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.store(
+            addr,
+            app_index=app_index,
+            scene_number=scene_number
+        )
+        print(result)
 
     async def store_unack(self, addr, app_index, arguments):
         client = self.elements[0][SceneClient]
         scene_number = int(arguments['<number>'])
-        await client.store_unack(addr, app_index=app_index,
-                                 scene_number=scene_number)
+        await client.store_unack(
+            addr,
+            app_index=app_index,
+            scene_number=scene_number
+        )
 
     async def delete(self, addr, app_index, arguments):
         client = self.elements[0][SceneClient]
         scene_number = int(arguments['<number>'])
-        result = await client.delete([addr], app_index=app_index,
-                                     scene_number=scene_number,
-                                     timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.delete(
+            addr,
+            app_index=app_index,
+            scene_number=scene_number
+        )
+        print(result)
 
     async def delete_unack(self, addr, app_index, arguments):
         client = self.elements[0][SceneClient]
         scene_number = int(arguments['<number>'])
-        await client.delete_unack(addr, app_index=app_index,
-                                  scene_number=scene_number)
+        await client.delete_unack(
+            addr,
+            app_index=app_index,
+            scene_number=scene_number
+        )
 
 
-    async def run(self, token, addr, app_index, cmd, arguments):
+    async def run(self, addr, app_index, cmd, arguments):
         async with self:
-            self.token_ring.token = token
-
             await self.connect()
 
             if cmd == "get":
@@ -152,22 +165,21 @@ class SampleApplication(Application):
 
 def main():
     doc = """
-    Generic On/Off Client Sample Application
+    Scene Client Sample Application
 
     Usage:
-        scene_client.py [-V] -t <token> -a <address> get
-        scene_client.py [-V] -t <token> -a <address> [--transition=<time>] recall <number>
-        scene_client.py [-V] -t <token> -a <address> [--transition=<time>] recall_unack <number>
-        scene_client.py [-V] -t <token> -a <address> register_get
-        scene_client.py [-V] -t <token> -a <address> store <number>
-        scene_client.py [-V] -t <token> -a <address> store_unack <number>
-        scene_client.py [-V] -t <token> -a <address> delete <number>
-        scene_client.py [-V] -t <token> -a <address> delete_unack <number>
+        scene_client.py [-V] -a <address> get
+        scene_client.py [-V] -a <address> [--transition=<time>] recall <number>
+        scene_client.py [-V] -a <address> [--transition=<time>] recall_unack <number>
+        scene_client.py [-V] -a <address> register_get
+        scene_client.py [-V] -a <address> store <number>
+        scene_client.py [-V] -a <address> store_unack <number>
+        scene_client.py [-V] -a <address> delete <number>
+        scene_client.py [-V] -a <address> delete_unack <number>
         scene_client.py [-h | --help]
         scene_client.py --version
 
     Options:
-        -t <token>              bluetooth-meshd node token
         -a <address>            Local node unicast address
         <number>                Scene number
         --transition=<time>     Transition time
@@ -180,6 +192,12 @@ def main():
 
     if arguments['-V']:
         logging.basicConfig(level=logging.DEBUG)
+
+    if arguments['-a']:
+        addr = int(arguments['-a'], 16)
+    else:
+        print(doc)
+        exit(-1)
 
     app_index = 0
     cmd = None
@@ -204,14 +222,14 @@ def main():
         print(doc)
         exit(-1)
 
-    token = int(arguments['-t'], 16)
     addr = int(arguments['-a'], 16)
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     app = SampleApplication(loop)
 
     with suppress(KeyboardInterrupt):
-        loop.run_until_complete(app.run(token, addr, app_index, cmd, arguments))
+        loop.run_until_complete(app.run(addr, app_index, cmd, arguments))
 
 
 if __name__ == '__main__':
