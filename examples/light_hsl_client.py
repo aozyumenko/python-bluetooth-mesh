@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import os
 import logging
 import asyncio
 import secrets
@@ -19,6 +20,7 @@ from bluetooth_mesh.models.generic.onoff import GenericOnOffClient
 from bluetooth_mesh.models.generic.level import GenericLevelClient
 from bluetooth_mesh.models.generic.dtt import GenericDTTClient
 from bluetooth_mesh.models.generic.ponoff import GenericPowerOnOffClient
+from bluetooth_mesh.models.generic.battery import GenericBatteryClient
 from bluetooth_mesh.models.sensor import SensorClient
 from bluetooth_mesh.models.time import TimeClient
 from bluetooth_mesh.models.scene import SceneClient
@@ -28,8 +30,8 @@ from bluetooth_mesh.models.light.hsl import LightHSLClient
 
 
 
-G_TIMEOUT = 5
-G_DELAY = 0.5
+G_PATH = "/com/silvair/sample_" + os.environ['USER']
+
 
 log = logging.getLogger()
 
@@ -43,6 +45,7 @@ class MainElement(Element):
         GenericOnOffClient,
         GenericDTTClient,
         GenericPowerOnOffClient,
+        GenericBatteryClient,
         SceneClient,
         GenericLevelClient,
         SensorClient,
@@ -63,17 +66,13 @@ class SampleApplication(Application):
     CAPABILITIES = [Capabilities.OUT_NUMERIC]
 
     CRPL = 32768
-    PATH = "/com/silvair/sample"
-
-    @property
-    def iv_index(self):
-        return 0
+    PATH = G_PATH
 
 
     async def get(self, addr, app_index, arguments):
         client = self.elements[0][LightHSLClient]
-        result = await client.get([addr], app_index=app_index, timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.get(addr, app_index=app_index)
+        print(result)
 
     async def set(self, addr, app_index, arguments):
         client = self.elements[0][LightHSLClient]
@@ -81,12 +80,14 @@ class SampleApplication(Application):
         hue = int(arguments['<hue>'])
         saturation = int(arguments['<saturation>'])
         transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
-        result = await client.set([addr], app_index=app_index,
-                                  hsl_lightness=lightness,
-                                  hsl_hue=hue,
-                                  hsl_saturation=saturation,
-                                  transition_time=transition_time)
-        print(result[addr])
+        result = await client.set(
+            addr,
+            app_index=app_index,
+            hsl_lightness=lightness,
+            hsl_hue=hue,
+            hsl_saturation=saturation,
+            transition_time=transition_time)
+        print(result)
 
     async def set_unack(self, addr, app_index, arguments):
         client = self.elements[0][LightHSLClient]
@@ -94,96 +95,112 @@ class SampleApplication(Application):
         hue = int(arguments['<hue>'])
         saturation = int(arguments['<saturation>'])
         transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
-        await client.set_unack(addr, app_index=app_index,
-                               hsl_lightness=lightness,
-                               hsl_hue=hue,
-                               hsl_saturation=saturation,
-                               transition_time=transition_time)
+        await client.set_unack(
+            addr,
+            app_index=app_index,
+            hsl_lightness=lightness,
+            hsl_hue=hue,
+            hsl_saturation=saturation,
+            transition_time=transition_time
+        )
 
     async def target_get(self, addr, app_index, arguments):
         client = self.elements[0][LightHSLClient]
-        result = await client.target_get([addr], app_index=app_index, timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.target_get(addr, app_index=app_index)
+        print(result)
 
     async def hue_get(self, addr, app_index, arguments):
         client = self.elements[0][LightHSLClient]
-        result = await client.hue_get([addr], app_index=app_index, timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.hue_get(addr, app_index=app_index)
+        print(result)
 
     async def hue_set(self, addr, app_index, arguments):
         client = self.elements[0][LightHSLClient]
         hue = int(arguments['<hue>'])
         transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
-        result = await client.hue_set([addr], app_index=app_index,
-                                      hue=hue,
-                                      transition_time=transition_time,
-                                      timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.hue_set(
+            addr,
+            app_index=app_index,
+            hue=hue,
+            transition_time=transition_time
+        )
+        print(result)
 
     async def hue_set_unack(self, addr, app_index, arguments):
         client = self.elements[0][LightHSLClient]
         hue = int(arguments['<hue>'])
         transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
-        await client.hue_set_unack(addr, app_index=app_index,
-                                   hue=hue,
-                                   transition_time=transition_time)
-
+        await client.hue_set_unack(
+            addr,
+            app_index=app_index,
+            hue=hue,
+            transition_time=transition_time
+        )
 
     async def saturation_get(self, addr, app_index, arguments):
         client = self.elements[0][LightHSLClient]
-        result = await client.saturation_get([addr], app_index=app_index, timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.saturation_get(addr, app_index=app_index)
+        print(result)
 
     async def saturation_set(self, addr, app_index, arguments):
         client = self.elements[0][LightHSLClient]
         saturation = int(arguments['<saturation>'])
         transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
-        result = await client.saturation_set([addr], app_index=app_index,
-                                             saturation=saturation,
-                                             transition_time=transition_time,
-                                             timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.saturation_set(
+            addr,
+            app_index=app_index,
+            saturation=saturation,
+            transition_time=transition_time
+        )
+        print(result)
 
     async def saturation_set_unack(self, addr, app_index, arguments):
         client = self.elements[0][LightHSLClient]
         saturation = int(arguments['<saturation>'])
         transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
-        await client.saturation_set_unack(addr, app_index=app_index,
-                                          saturation=saturation,
-                                          transition_time=transition_time)
-
-
+        await client.saturation_set_unack(
+            addr,
+            app_index=app_index,
+            saturation=saturation,
+            transition_time=transition_time
+        )
 
     async def default_get(self, addr, app_index, arguments):
         client = self.elements[0][LightHSLClient]
-        result = await client.default_get([addr], app_index=app_index, timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.default_get(addr, app_index=app_index)
+        print(result)
 
     async def default_set(self, addr, app_index, arguments):
         client = self.elements[0][LightHSLClient]
         lightness = int(arguments['<lightness>'])
         hue = int(arguments['<hue>'])
         saturation = int(arguments['<saturation>'])
-        result = await client.default_set([addr], app_index=app_index,
-                                          hsl_lightness=lightness,
-                                          hsl_hue=hue,
-                                          hsl_saturation=saturation)
-        print(result[addr])
+        result = await client.default_set(
+            addr,
+            app_index=app_index,
+            hsl_lightness=lightness,
+            hsl_hue=hue,
+            hsl_saturation=saturation
+        )
+        print(result)
 
     async def default_set_unack(self, addr, app_index, arguments):
         client = self.elements[0][LightHSLClient]
         lightness = int(arguments['<lightness>'])
         hue = int(arguments['<hue>'])
         saturation = int(arguments['<saturation>'])
-        await client.default_set_unack(addr, app_index=app_index,
-                                       hsl_lightness=lightness,
-                                       hsl_hue=hue,
-                                       hsl_saturation=saturation)
+        await client.default_set_unack(
+            addr,
+            app_index=app_index,
+            hsl_lightness=lightness,
+            hsl_hue=hue,
+            hsl_saturation=saturation
+        )
 
     async def range_get(self, addr, app_index, arguments):
         client = self.elements[0][LightHSLClient]
-        result = await client.range_get([addr], app_index=app_index)
-        print(result[addr])
+        result = await client.range_get(addr, app_index=app_index)
+        print(result)
 
     async def range_set(self, addr, app_index, arguments):
         client = self.elements[0][LightHSLClient]
@@ -191,12 +208,15 @@ class SampleApplication(Application):
         hue_max = int(arguments['<hue_max>'])
         saturation_min = int(arguments['<saturation_min>'])
         saturation_max = int(arguments['<saturation_max>'])
-        result = await client.range_set([addr], app_index=app_index,
-                                        hue_range_min=hue_min,
-                                        hue_range_max=hue_max,
-                                        saturation_range_min=saturation_min,
-                                        saturation_range_max=saturation_max)
-        print(result[addr])
+        result = await client.range_set(
+            addr,
+            app_index=app_index,
+            hue_range_min=hue_min,
+            hue_range_max=hue_max,
+            saturation_range_min=saturation_min,
+            saturation_range_max=saturation_max
+        )
+        print(result)
 
     async def range_set_unack(self, addr, app_index, arguments):
         client = self.elements[0][LightHSLClient]
@@ -211,10 +231,8 @@ class SampleApplication(Application):
                                      saturation_range_max=saturation_max)
 
 
-    async def run(self, token, addr, app_index, cmd, arguments):
+    async def run(self, addr, app_index, cmd, arguments):
         async with self:
-            self.token_ring.token = token
-
             await self.connect()
 
             if cmd == "get":
@@ -256,27 +274,26 @@ def main():
     Light HSL Client Sample Application
 
     Usage:
-        light_hsl_client.py [-V] -t <token> -a <address> get
-        light_hsl_client.py [-V] -t <token> -a <address> [--transition=<time>] set <lightness> <hue> <saturation>
-        light_hsl_client.py [-V] -t <token> -a <address> [--transition=<time>] set_unack <lightness> <hue> <saturation>
-        light_hsl_client.py [-V] -t <token> -a <address> target_get
-        light_hsl_client.py [-V] -t <token> -a <address> hue_get
-        light_hsl_client.py [-V] -t <token> -a <address> [--transition=<time>] hue_set <hue>
-        light_hsl_client.py [-V] -t <token> -a <address> [--transition=<time>] hue_set_unack <hue>
-        light_hsl_client.py [-V] -t <token> -a <address> sat_get [<saturation>]
-        light_hsl_client.py [-V] -t <token> -a <address> [--transition=<time>] sat_set <saturation>
-        light_hsl_client.py [-V] -t <token> -a <address> [--transition=<time>] sat_set_unack <saturation>
-        light_hsl_client.py [-V] -t <token> -a <address> default_get
-        light_hsl_client.py [-V] -t <token> -a <address> default_set <lightness> <hue> <saturation>
-        light_hsl_client.py [-V] -t <token> -a <address> default_set_unack <lightness> <hue> <saturation>
-        light_hsl_client.py [-V] -t <token> -a <address> range_get
-        light_hsl_client.py [-V] -t <token> -a <address> range_set <hue_min> <hue_max> <saturation_min> <saturation_max>
-        light_hsl_client.py [-V] -t <token> -a <address> range_set_unack <hue_min> <hue_max> <saturation_min> <saturation_max>
+        light_hsl_client.py [-V] -a <address> get
+        light_hsl_client.py [-V] -a <address> [--transition=<time>] set <lightness> <hue> <saturation>
+        light_hsl_client.py [-V] -a <address> [--transition=<time>] set_unack <lightness> <hue> <saturation>
+        light_hsl_client.py [-V] -a <address> target_get
+        light_hsl_client.py [-V] -a <address> hue_get
+        light_hsl_client.py [-V] -a <address> [--transition=<time>] hue_set <hue>
+        light_hsl_client.py [-V] -a <address> [--transition=<time>] hue_set_unack <hue>
+        light_hsl_client.py [-V] -a <address> sat_get [<saturation>]
+        light_hsl_client.py [-V] -a <address> [--transition=<time>] sat_set <saturation>
+        light_hsl_client.py [-V] -a <address> [--transition=<time>] sat_set_unack <saturation>
+        light_hsl_client.py [-V] -a <address> default_get
+        light_hsl_client.py [-V] -a <address> default_set <lightness> <hue> <saturation>
+        light_hsl_client.py [-V] -a <address> default_set_unack <lightness> <hue> <saturation>
+        light_hsl_client.py [-V] -a <address> range_get
+        light_hsl_client.py [-V] -a <address> range_set <hue_min> <hue_max> <saturation_min> <saturation_max>
+        light_hsl_client.py [-V] -a <address> range_set_unack <hue_min> <hue_max> <saturation_min> <saturation_max>
         light_hsl_client.py [-h | --help]
         light_hsl_client.py --version
 
     Options:
-        -t <token>              bluetooth-meshd node token
         -a <address>            Local node unicast address
         <lightness>             Lightness value: 0-65535
         <hue>                   Hue value: 0-65535
@@ -291,6 +308,12 @@ def main():
 
     if arguments['-V']:
         logging.basicConfig(level=logging.DEBUG)
+
+    if arguments['-a']:
+        addr = int(arguments['-a'], 16)
+    else:
+        print(doc)
+        exit(-1)
 
     cmd = None
     app_index = 0
@@ -327,15 +350,16 @@ def main():
         cmd = 'range_set'
     elif arguments['range_set_unack']:
         cmd = 'range_set_unack'
+    else:
+        print(doc)
+        exit(-1)
 
-    token = int(arguments['-t'], 16)
-    addr = int(arguments['-a'], 16)
-
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     app = SampleApplication(loop)
 
     with suppress(KeyboardInterrupt):
-        loop.run_until_complete(app.run(token, addr, app_index, cmd, arguments))
+        loop.run_until_complete(app.run(addr, app_index, cmd, arguments))
 
 
 if __name__ == '__main__':

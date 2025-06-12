@@ -64,11 +64,7 @@ class SampleApplication(Application):
     CAPABILITIES = [Capabilities.OUT_NUMERIC]
 
     CRPL = 32768
-
-
-    @property
-    def path(self) -> str:
-        return G_PATH
+    PATH = G_PATH
 
 
     async def get(self, addr, app_index, arguments):

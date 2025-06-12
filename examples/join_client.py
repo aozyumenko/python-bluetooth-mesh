@@ -63,11 +63,7 @@ class SampleApplication(Application):
     }
     CAPABILITIES = [Capabilities.OUT_NUMERIC]
     CRPL = 32768
-
-
-    @property
-    def path(self) -> str:
-        return "/com/silvair/sample_" + G_PATH
+    PATH = G_PATH
 
 
     def display_string(self, value: str):
