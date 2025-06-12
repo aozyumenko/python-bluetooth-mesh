@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import os
 import logging
 import asyncio
 import secrets
@@ -29,7 +30,7 @@ from bluetooth_mesh.models.light.hsl import LightHSLClient
 
 
 # Global variables
-G_TIMEOUT = 5
+G_PATH = "/com/silvair/sample_" + os.environ['USER']
 
 log = logging.getLogger()
 
@@ -64,26 +65,24 @@ class SampleApplication(Application):
     CAPABILITIES = [Capabilities.OUT_NUMERIC]
 
     CRPL = 32768
-    PATH = "/com/silvair/sample"
+    PATH = G_PATH
 
-    @property
-    def iv_index(self):
-        return 0
 
     async def get(self, addr, app_index, arguments):
         client = self.elements[0][LightLightnessClient]
-        result = await client.get([addr], app_index=app_index, timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.get(addr, app_index=app_index)
+        print(result)
 
     async def set(self, addr, app_index, arguments):
         client = self.elements[0][LightLightnessClient]
         lightness = int(arguments['<lightness>'])
         transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
-        result = await client.set([addr],
-                                  app_index=app_index,
-                                  lightness=lightness,
-                                  transition_time=transition_time,
-                                  timeout=G_TIMEOUT)
+        result = await client.set(
+            addr,
+            app_index=app_index,
+            lightness=lightness,
+            transition_time=transition_time
+        )
         print(result)
 
     async def set_unack(self, addr, app_index, arguments):
@@ -91,89 +90,99 @@ class SampleApplication(Application):
         lightness = int(arguments['<lightness>'])
         transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
         await client.set_unack(addr,
-                               app_index=app_index,
-                               lightness=lightness,
-                               transition_time=transition_time)
+            app_index=app_index,
+            lightness=lightness,
+            transition_time=transition_time
+        )
 
     async def linear_get(self, addr, app_index, arguments):
         client = self.elements[0][LightLightnessClient]
-        result = await client.linear_get([addr], app_index=app_index, timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.linear_get(addr, app_index=app_index)
+        print(result)
 
     async def linear_set(self, addr, app_index, arguments):
         client = self.elements[0][LightLightnessClient]
         lightness = int(arguments['<lightness>'])
         transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
-        result = await client.linear_set([addr],
-                                         app_index=app_index,
-                                         lightness=lightness,
-                                         transition_time=transition_time,
-                                         timeout=G_TIMEOUT)
+        result = await client.linear_set(
+            addr,
+            app_index=app_index,
+            lightness=lightness,
+            transition_time=transition_time
+        )
         print(result)
 
     async def linear_set_unack(self, addr, app_index, arguments):
         client = self.elements[0][LightLightnessClient]
         lightness = int(arguments['<lightness>'])
         transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
-        await client.linear_set_unack(addr,
-                                      app_index=app_index,
-                                      lightness=lightness,
-                                      transition_time=transition_time)
+        await client.linear_set_unack(
+            addr,
+            app_index=app_index,
+            lightness=lightness,
+            transition_time=transition_time
+        )
 
     async def last_get(self, addr, app_index, arguments):
         client = self.elements[0][LightLightnessClient]
-        result = await client.last_get([addr], app_index=app_index, timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.last_get(addr, app_index=app_index)
+        print(result)
 
     async def default_get(self, addr, app_index, arguments):
         client = self.elements[0][LightLightnessClient]
-        result = await client.default_get([addr], app_index=app_index, timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.default_get(addr, app_index=app_index)
+        print(result)
 
     async def default_set(self, addr, app_index, arguments):
         client = self.elements[0][LightLightnessClient]
         lightness = int(arguments['<lightness>'])
-        result = await client.default_set([addr],
-                                          app_index=app_index,
-                                          lightness=lightness,
-                                          timeout=G_TIMEOUT)
+        result = await client.default_set(
+            addr,
+            app_index=app_index,
+            lightness=lightness
+        )
         print(result)
 
     async def default_set_unack(self, addr, app_index, arguments):
         client = self.elements[0][LightLightnessClient]
         lightness = int(arguments['<lightness>'])
-        await client.default_set_unack(addr,
-                                       app_index=app_index,
-                                       lightness=lightness)
+        await client.default_set_unack(
+            addr,
+            app_index=app_index,
+            lightness=lightness
+        )
 
     async def range_get(self, addr, app_index, arguments):
         client = self.elements[0][LightLightnessClient]
-        result = await client.range_get([addr], app_index=app_index, timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.range_get(addr, app_index=app_index)
+        print(result)
 
     async def range_set(self, addr, app_index, arguments):
         client = self.elements[0][LightLightnessClient]
         lightness_min = int(arguments['<min>'])
         lightness_max = int(arguments['<max>'])
-        result = await client.range_set([addr], app_index=app_index,
-                                        min_lightness=lightness_min,
-                                        max_lightness=lightness_max,
-                                        timeout=G_TIMEOUT)
+        result = await client.range_set(
+            addr,
+            app_index=app_index,
+            min_lightness=lightness_min,
+            max_lightness=lightness_max
+        )
         print(result)
 
     async def range_set_unack(self, addr, app_index, arguments):
         client = self.elements[0][LightLightnessClient]
         lightness_min = int(arguments['<min>'])
         lightness_max = int(arguments['<max>'])
-        await client.range_set_unack(addr, app_index=app_index,
-                                     min_lightness=lightness_min,
-                                     max_lightness=lightness_max)
+        await client.range_set_unack(
+            addr,
+            app_index=app_index,
+            min_lightness=lightness_min,
+            max_lightness=lightness_max
+        )
 
 
-    async def run(self, token, addr, app_index, cmd, arguments):
+    async def run(self, addr, app_index, cmd, arguments):
         async with self:
-            self.token_ring.token = token
-
             await self.connect()
 
             if cmd == "get":
@@ -209,24 +218,23 @@ def main():
     Light Lightness Client Sample Application
 
     Usage:
-        light_lightness_client.py [-V] -t <token> -a <address> get
-        light_lightness_client.py [-V] -t <token> -a <address> [--transition=<time>] set <lightness>
-        light_lightness_client.py [-V] -t <token> -a <address> [--transition=<time>] set_unack <lightness>
-        light_lightness_client.py [-V] -t <token> -a <address> linear_get
-        light_lightness_client.py [-V] -t <token> -a <address> [--transition=<time>] linear_set <lightness>
-        light_lightness_client.py [-V] -t <token> -a <address> [--transition=<time>] linear_set_unack <lightness>
-        light_lightness_client.py [-V] -t <token> -a <address> last_get
-        light_lightness_client.py [-V] -t <token> -a <address> default_get
-        light_lightness_client.py [-V] -t <token> -a <address> default_set <lightness>
-        light_lightness_client.py [-V] -t <token> -a <address> default_set_unack <lightness>
-        light_lightness_client.py [-V] -t <token> -a <address> range_get
-        light_lightness_client.py [-V] -t <token> -a <address> range_set <min> <max>
-        light_lightness_client.py [-V] -t <token> -a <address> range_set_unack <min> <max>
+        light_lightness_client.py [-V] -a <address> get
+        light_lightness_client.py [-V] -a <address> [--transition=<time>] set <lightness>
+        light_lightness_client.py [-V] -a <address> [--transition=<time>] set_unack <lightness>
+        light_lightness_client.py [-V] -a <address> linear_get
+        light_lightness_client.py [-V] -a <address> [--transition=<time>] linear_set <lightness>
+        light_lightness_client.py [-V] -a <address> [--transition=<time>] linear_set_unack <lightness>
+        light_lightness_client.py [-V] -a <address> last_get
+        light_lightness_client.py [-V] -a <address> default_get
+        light_lightness_client.py [-V] -a <address> default_set <lightness>
+        light_lightness_client.py [-V] -a <address> default_set_unack <lightness>
+        light_lightness_client.py [-V] -a <address> range_get
+        light_lightness_client.py [-V] -a <address> range_set <min> <max>
+        light_lightness_client.py [-V] -a <address> range_set_unack <min> <max>
         light_lightness_client.py [-h | --help]
         light_lightness_client.py --version
 
     Options:
-        -t <token>              bluetooth-meshd node token
         -a <address>            Local node unicast address
         --transition=<time>     Transition time
         <lightness>             Lightness value: 0-65535
@@ -241,6 +249,12 @@ def main():
 
     if arguments['-V']:
         logging.basicConfig(level=logging.DEBUG)
+
+    if arguments['-a']:
+        addr = int(arguments['-a'], 16)
+    else:
+        print(doc)
+        exit(-1);
 
     app_index = 0
     cmd = None
@@ -275,14 +289,13 @@ def main():
         print(doc)
         exit(-1);
 
-    token = int(arguments['-t'], 16)
-    addr = int(arguments['-a'], 16)
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     app = SampleApplication(loop)
 
     with suppress(KeyboardInterrupt):
-        loop.run_until_complete(app.run(token, addr, app_index, cmd, arguments))
+        loop.run_until_complete(app.run(addr, app_index, cmd, arguments))
 
 
 if __name__ == '__main__':
