@@ -30,9 +30,6 @@ from bluetooth_mesh.models.light.hsl import LightHSLClient
 
 
 
-G_SEND_INTERVAL = 0.05
-G_TIMEOUT = 0.2
-G_UNACK_RETRANSMISSIONS = 3
 G_PATH = "/com/silvair/sample_" + os.environ['USER']
 
 

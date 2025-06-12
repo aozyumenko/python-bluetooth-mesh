@@ -138,7 +138,12 @@ def main():
     if arguments['-V']:
         logging.basicConfig(level=logging.DEBUG)
 
-    addr = int(arguments['-a'], 16)
+    if arguments['-a']:
+        addr = int(arguments['-a'], 16)
+    else:
+        print(doc)
+        exit(-1)
+
     app_index = 0
     cmd = None
 
