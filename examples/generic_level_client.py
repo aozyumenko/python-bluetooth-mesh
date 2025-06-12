@@ -24,6 +24,7 @@ from bluetooth_mesh.models.generic.onoff import GenericOnOffClient
 from bluetooth_mesh.models.generic.level import GenericLevelClient
 from bluetooth_mesh.models.generic.dtt import GenericDTTClient
 from bluetooth_mesh.models.generic.ponoff import GenericPowerOnOffClient
+from bluetooth_mesh.models.generic.battery import GenericBatteryClient
 from bluetooth_mesh.models.sensor import SensorClient
 from bluetooth_mesh.models.time import TimeClient
 from bluetooth_mesh.models.scene import SceneClient
@@ -35,7 +36,8 @@ from bluetooth_mesh.models.light.hsl import LightHSLClient
 G_SEND_INTERVAL = 0.5
 G_TIMEOUT = 3
 G_UNACK_RETRANSMISSIONS = 3
-G_JSON_CONF = "join_client_" + os.environ['USER'] +".json"
+G_PATH = "/com/silvair/sample_" + os.environ['USER']
+
 
 log = logging.getLogger()
 
@@ -48,6 +50,7 @@ class MainElement(Element):
         GenericOnOffClient,
         GenericDTTClient,
         GenericPowerOnOffClient,
+        GenericBatteryClient,
         SceneClient,
         GenericLevelClient,
         SensorClient,
@@ -69,38 +72,29 @@ class SampleApplication(Application):
 
     CRPL = 32768
 
-    @property
-    def iv_index(self):
-        return 0
 
-    def token_load(self):
-        try:
-            with open(G_JSON_CONF, "r") as tokenfile:
-                try:
-                    return json.load(tokenfile)
-                except (json.JSONDecodeError, EOFError):
-                    return dict({'user': os.environ['USER'], 'token': None, 'path': self.PATH})
-        except FileNotFoundError:
-            return dict({'user': os.environ['USER'], 'token': None, 'path': self.PATH})
+    @property
+    def path(self) -> str:
+        return G_PATH
 
 
     async def get(self, addr, app_index, arguments):
         client = self.elements[0][GenericLevelClient]
-        result = await client.get([addr], app_index=app_index,
+        result = await client.get(addr, app_index=app_index,
                                   send_interval=G_SEND_INTERVAL,
                                   timeout=G_TIMEOUT)
-        print(result[addr])
+        print(result)
 
     async def set(self, addr, app_index, arguments):
         client = self.elements[0][GenericLevelClient]
         level = -int(arguments['<level>'][2:]) if arguments['<level>'][0:2] == '0-' else int(arguments['<level>'])
         transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
-        result = await client.set([addr], app_index=app_index,
+        result = await client.set(addr, app_index=app_index,
                                   level=level,
                                   transition_time=transition_time,
                                   send_interval=G_SEND_INTERVAL,
                                   timeout=G_TIMEOUT)
-        print(result[addr])
+        print(result)
 
     async def set_unack(self, addr, app_index, arguments):
         client = self.elements[0][GenericLevelClient]
@@ -116,12 +110,12 @@ class SampleApplication(Application):
         client = self.elements[0][GenericLevelClient]
         level = -int(arguments['<level>'][2:]) if arguments['<level>'][0:2] == '0-' else int(arguments['<level>'])
         transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
-        result = await client.delta_set([addr], app_index=app_index,
+        result = await client.delta_set(addr, app_index=app_index,
                                         delta_level=level,
                                         transition_time=transition_time,
                                         send_interval=G_SEND_INTERVAL,
                                         timeout=G_TIMEOUT)
-        print(result[addr])
+        print(result)
 
     async def delta_set_unack(self, addr, app_index, arguments):
         client = self.elements[0][GenericLevelClient]
@@ -137,12 +131,12 @@ class SampleApplication(Application):
         client = self.elements[0][GenericLevelClient]
         level = -int(arguments['<level>'][2:]) if arguments['<level>'][0:2] == '0-' else int(arguments['<level>'])
         transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
-        result = await client.move_set([addr], app_index=app_index,
+        result = await client.move_set(addr, app_index=app_index,
                                        delta_level=level,
                                        transition_time=transition_time,
                                        send_interval=G_SEND_INTERVAL,
                                        timeout=G_TIMEOUT)
-        print(result[addr])
+        print(result)
 
     async def move_set_unack(self, addr, app_index, arguments):
         client = self.elements[0][GenericLevelClient]
@@ -173,12 +167,6 @@ class SampleApplication(Application):
 
     async def run(self, addr, app_index, cmd, arguments):
         async with self:
-            token_conf = self.token_load()
-            if 'token' in token_conf:
-                self.token_ring.token = token_conf['token']
-            if 'path' in token_conf:
-                self.PATH = token_conf['path']
-
             await self.connect()
 
             if cmd == "get":
@@ -229,7 +217,12 @@ def main():
     if arguments['-V']:
         logging.basicConfig(level=logging.DEBUG)
 
-    addr = int(arguments['-a'], 16)
+    if arguments['-a']:
+        addr = int(arguments['-a'], 16)
+    else:
+        print(doc)
+        exit(-1)
+
     app_index = 0
     cmd = None
 
@@ -253,7 +246,8 @@ def main():
         print(doc)
         exit(-1)
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     app = SampleApplication(loop)
 
     with suppress(KeyboardInterrupt):
