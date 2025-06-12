@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import os
 import logging
 import asyncio
 import secrets
@@ -19,6 +20,7 @@ from bluetooth_mesh.models.generic.onoff import GenericOnOffClient
 from bluetooth_mesh.models.generic.level import GenericLevelClient
 from bluetooth_mesh.models.generic.dtt import GenericDTTClient
 from bluetooth_mesh.models.generic.ponoff import GenericPowerOnOffClient
+from bluetooth_mesh.models.generic.battery import GenericBatteryClient
 from bluetooth_mesh.models.sensor import SensorClient
 from bluetooth_mesh.models.time import TimeClient
 from bluetooth_mesh.models.scene import SceneClient
@@ -28,10 +30,13 @@ from bluetooth_mesh.models.light.hsl import LightHSLClient
 
 
 
-G_TIMEOUT = 5
+G_SEND_INTERVAL = 0.05
+G_TIMEOUT = 0.2
+G_UNACK_RETRANSMISSIONS = 3
+G_PATH = "/com/silvair/sample_" + os.environ['USER']
+
 
 log = logging.getLogger()
-
 
 
 class MainElement(Element):
@@ -42,6 +47,7 @@ class MainElement(Element):
         GenericOnOffClient,
         GenericDTTClient,
         GenericPowerOnOffClient,
+        GenericBatteryClient,
         SceneClient,
         GenericLevelClient,
         SensorClient,
@@ -64,22 +70,23 @@ class SampleApplication(Application):
     CRPL = 32768
     PATH = "/com/silvair/sample"
 
+
     @property
-    def iv_index(self):
-        return 0
+    def path(self) -> str:
+        return G_PATH
+
 
     async def get(self, addr, app_index, arguments):
         client = self.elements[0][GenericDTTClient]
-        result = await client.get([addr], app_index=app_index, timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.get(addr, app_index=app_index)
+        print(result)
 
     async def set(self, addr, app_index, arguments):
         client = self.elements[0][GenericDTTClient]
         transition_time = float(arguments['<transition_time>'])
-        result = await client.set([addr], app_index=app_index,
-                                  transition_time=transition_time,
-                                  timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.set(addr, app_index=app_index,
+                                  transition_time=transition_time)
+        print(result)
 
     async def set_unack(self, addr, app_index, arguments):
         client = self.elements[0][GenericDTTClient]
@@ -88,10 +95,8 @@ class SampleApplication(Application):
                                transition_time=transition_time)
 
 
-    async def run(self, token, addr, app_index, cmd, arguments):
+    async def run(self, addr, app_index, cmd, arguments):
         async with self:
-            self.token_ring.token = token
-
             await self.connect()
 
             if cmd == "get":
@@ -107,14 +112,13 @@ def main():
     Generic Generic Default Transition Time Client Sample Application
 
     Usage:
-        generic_dtt_client.py [-V] -t <token> -a <address> get
-        generic_dtt_client.py [-V] -t <token> -a <address> set <transition_time>
-        generic_dtt_client.py [-V] -t <token> -a <address> set_unack <transition_time>
+        generic_dtt_client.py [-V] -a <address> get
+        generic_dtt_client.py [-V] -a <address> set <transition_time>
+        generic_dtt_client.py [-V] -a <address> set_unack <transition_time>
         generic_dtt_client.py [-h | --help]
         generic_dtt_client.py --version
 
     Options:
-        -t <token>              bluetooth-meshd node token
         -a <address>            Local node unicast address
         <transition_time>       Transition time
         -V                      Show verbose messages
@@ -127,8 +131,12 @@ def main():
     if arguments['-V']:
         logging.basicConfig(level=logging.DEBUG)
 
-    token = int(arguments['-t'], 16)
-    addr = int(arguments['-a'], 16)
+    if arguments['-a']:
+        addr = int(arguments['-a'], 16)
+    else:
+        print(doc)
+        exit(-1)
+
     app_index = 0
     cmd = None
 
@@ -142,11 +150,12 @@ def main():
         print(doc)
         exit(-1)
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     app = SampleApplication(loop)
 
     with suppress(KeyboardInterrupt):
-        loop.run_until_complete(app.run(token, addr, app_index, cmd, arguments))
+        loop.run_until_complete(app.run(addr, app_index, cmd, arguments))
 
 
 if __name__ == '__main__':
