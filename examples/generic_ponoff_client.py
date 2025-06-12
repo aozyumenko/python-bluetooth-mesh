@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import os
 import logging
 import asyncio
 import secrets
@@ -27,7 +28,8 @@ from bluetooth_mesh.models.light.ctl import LightCTLClient
 from bluetooth_mesh.models.light.hsl import LightHSLClient
 
 
-G_TIMEOUT = 5
+G_PATH = "/com/silvair/sample_" + os.environ['USER']
+
 
 log = logging.getLogger()
 
@@ -62,22 +64,23 @@ class SampleApplication(Application):
     CRPL = 32768
     PATH = "/com/silvair/sample"
 
+
     @property
-    def iv_index(self):
-        return 0
+    def path(self) -> str:
+        return G_PATH
+
 
     async def get(self, addr, app_index, arguments):
         client = self.elements[0][GenericPowerOnOffClient]
-        result = await client.get([addr], app_index=app_index, timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.get(addr, app_index=app_index)
+        print(result)
 
     async def set(self, addr, app_index, arguments):
         client = self.elements[0][GenericPowerOnOffClient]
         val = int(arguments['<val>'])
-        result = await client.set([addr], app_index=app_index,
-                                  on_power_up=val,
-                                  timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.set(addr, app_index=app_index,
+                                  on_power_up=val)
+        print(result)
 
     async def set_unack(self, addr, app_index, arguments):
         client = self.elements[0][GenericPowerOnOffClient]
@@ -86,10 +89,8 @@ class SampleApplication(Application):
                                on_power_up=val)
 
 
-    async def run(self, token, addr, app_index, cmd, arguments):
+    async def run(self, addr, app_index, cmd, arguments):
         async with self:
-            self.token_ring.token = token
-
             await self.connect()
 
             if cmd == "get":
@@ -105,14 +106,13 @@ def main():
     Generic Generic OnPowerUp Client Sample Application
 
     Usage:
-        generic_ponoff_client.py [-V] -t <token> -a <address> get
-        generic_ponoff_client.py [-V] -t <token> -a <address> set <val>
-        generic_ponoff_client.py [-V] -t <token> -a <address> set_unack <val>
+        generic_ponoff_client.py [-V] -a <address> get
+        generic_ponoff_client.py [-V] -a <address> set <val>
+        generic_ponoff_client.py [-V] -a <address> set_unack <val>
         generic_ponoff_client.py [-h | --help]
         generic_ponoff_client.py --version
 
     Options:
-        -t <token>              bluetooth-meshd node token
         -a <address>            Local node unicast address
         <val>                   0-off, 1-default, 2-restore
         -V                      Show verbose messages
@@ -125,8 +125,12 @@ def main():
     if arguments['-V']:
         logging.basicConfig(level=logging.DEBUG)
 
-    token = int(arguments['-t'], 16)
-    addr = int(arguments['-a'], 16)
+    if arguments['-a']:
+        addr = int(arguments['-a'], 16)
+    else:
+        print(doc)
+        exit(-1)
+
     app_index = 0
     cmd = None
 
@@ -136,12 +140,15 @@ def main():
         cmd = 'set'
     elif arguments['set_unack']:
         cmd = 'set_unack'
+    else:
+        print(doc)
+        exit(-1)
 
     loop = asyncio.get_event_loop()
     app = SampleApplication(loop)
 
     with suppress(KeyboardInterrupt):
-        loop.run_until_complete(app.run(token, addr, app_index, cmd, arguments))
+        loop.run_until_complete(app.run(addr, app_index, cmd, arguments))
 
 
 if __name__ == '__main__':
