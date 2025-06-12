@@ -27,6 +27,7 @@ from bluetooth_mesh.models.generic.onoff import GenericOnOffClient
 from bluetooth_mesh.models.generic.level import GenericLevelClient
 from bluetooth_mesh.models.generic.dtt import GenericDTTClient
 from bluetooth_mesh.models.generic.ponoff import GenericPowerOnOffClient
+from bluetooth_mesh.models.generic.battery import GenericBatteryClient
 from bluetooth_mesh.models.sensor import SensorClient
 from bluetooth_mesh.models.time import TimeClient
 from bluetooth_mesh.models.scene import SceneClient
@@ -36,9 +37,8 @@ from bluetooth_mesh.models.light.hsl import LightHSLClient
 
 
 G_SEND_INTERVAL = 0.5
-G_TIMEOUT = 5.0
-G_JSON_CONF = "join_client_" + os.environ['USER'] +".json"
-
+G_TIMEOUT = 10.0
+G_PATH = "/com/silvair/sample_" + os.environ['USER']
 
 log = logging.getLogger()
 
@@ -51,6 +51,7 @@ class MainElement(Element):
         GenericOnOffClient,
         GenericDTTClient,
         GenericPowerOnOffClient,
+        GenericBatteryClient,
         SceneClient,
         GenericLevelClient,
         SensorClient,
@@ -71,54 +72,47 @@ class SampleApplication(Application):
     CAPABILITIES = [Capabilities.OUT_NUMERIC]
 
     CRPL = 32768
-    PATH = "/com/silvair/sample" + os.environ['USER']
-
-    @property
-    def iv_index(self):
-        return 0
-
-    def token_load(self):
-        try:
-            with open(G_JSON_CONF, "r") as tokenfile:
-                try:
-                    return json.load(tokenfile)
-                except (json.JSONDecodeError, EOFError):
-                    return dict({'user': os.environ['USER'], 'token': None, 'path': self.PATH})
-        except FileNotFoundError:
-            return dict({'user': os.environ['USER'], 'token': None, 'path': self.PATH})
+    PATH = G_PATH
 
 
     async def descriptor_get(self, addr, app_index, arguments):
         client = self.elements[0][SensorClient]
-        result = await client.descriptor_get([addr], app_index=app_index,
-                                                     timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.descriptor_get(
+            addr,
+            app_index=app_index,
+            send_interval=G_SEND_INTERVAL,
+            timeout=G_TIMEOUT
+        )
+        print(result)
 
     async def get(self, addr, app_index, arguments):
         client = self.elements[0][SensorClient]
-
         addr = int(arguments['-a'], 16)
         property_id = int(arguments['-p'], 16) if arguments['-p'] else None
-
-        result = await client.get([addr], app_index=app_index,
-                                  property_id=property_id,
-                                  timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.get(
+            addr,
+            app_index=app_index,
+            property_id=property_id,
+            send_interval=G_SEND_INTERVAL,
+            timeout=G_TIMEOUT
+        )
+        print(result)
 
     async def cadence_get(self, addr, app_index, arguments):
         client = self.elements[0][SensorClient]
-
         addr = int(arguments['-a'], 16)
         property_id = int(arguments['-p'], 16)
-
-        result = await client.cadence_get([addr], app_index=app_index,
-                                          property_id=property_id,
-                                          timeout=G_TIMEOUT)
-        print(result[addr])
+        result = await client.cadence_get(
+            addr,
+            app_index=app_index,
+            property_id=property_id,
+            send_interval=G_SEND_INTERVAL,
+            timeout=G_TIMEOUT
+        )
+        print(result)
 
     async def cadence_set(self, addr, app_index, arguments):
         client = self.elements[0][SensorClient]
-
         addr = int(arguments['-a'], 16)
         property_id = int(arguments['-p'], 16)
         fast_cadence_period_divisor = int(arguments['<fast_divisor>'])
@@ -138,9 +132,13 @@ class SampleApplication(Application):
             print("Unsipported PropertyID")
             return
 
-        result = await client.cadence_set([addr], app_index=app_index,
-                                         **request,
-                                         timeout=G_TIMEOUT)
+        result = await client.cadence_set(
+            addr,
+            app_index=app_index,
+            **request,
+            send_interval=G_SEND_INTERVAL,
+            timeout=G_TIMEOUT
+        )
         print(result)
 
     async def listen(self, addr, app_index, arguments):
@@ -162,12 +160,6 @@ class SampleApplication(Application):
 
     async def run(self, addr, app_index, cmd, arguments):
         async with self:
-            token_conf = self.token_load()
-            if 'token' in token_conf:
-                self.token_ring.token = token_conf['token']
-            if 'path' in token_conf:
-                self.PATH = token_conf['path']
-
             await self.connect()
 
             if cmd == "descriptor_get":
@@ -208,7 +200,12 @@ def main():
     if arguments['-V']:
         logging.basicConfig(level=logging.DEBUG)
 
-    addr = int(arguments['-a'], 16)
+    if arguments['-a']:
+        addr = int(arguments['-a'], 16)
+    else:
+        print(doc)
+        exit(-1)
+
     app_index = 0
     cmd = None
 
@@ -226,7 +223,8 @@ def main():
         print(doc)
         exit(-1)
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     app = SampleApplication(loop)
 
     with suppress(KeyboardInterrupt):
