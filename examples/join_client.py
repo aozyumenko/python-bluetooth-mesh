@@ -32,7 +32,7 @@ import logging
 log = logging.getLogger()
 
 
-G_JSON_CONF = "join_client_" + os.environ['USER'] +".json"
+G_PATH = "/com/silvair/sample_" + os.environ['USER']
 
 
 class MainElement(Element):
@@ -64,14 +64,11 @@ class SampleApplication(Application):
     CAPABILITIES = [Capabilities.OUT_NUMERIC]
     CRPL = 32768
 
-    def __init__(self, path_suffix, loop) -> None:
-        self.PATH = "/com/silvair/sample_" + path_suffix
-        super().__init__(loop)
-
 
     @property
-    def iv_index(self):
-        return 0
+    def path(self) -> str:
+        return "/com/silvair/sample_" + G_PATH
+
 
     def display_string(self, value: str):
         print("request key: %s" % str)
@@ -79,35 +76,13 @@ class SampleApplication(Application):
     def display_numeric(self, type: str, number: int):
          print("request key: type=%s, number=%d" % (type, number))
 
-    def token_save(self, token):
-        with open(G_JSON_CONF, "w") as tokenfile:
-            json.dump(
-                dict({'user': os.environ['USER'], 'token': token, 'path': self.PATH}),
-                tokenfile
-            )
-
-    def token_load(self):
-        try:
-            with open(G_JSON_CONF, "r") as tokenfile:
-                try:
-                    return json.load(tokenfile)
-                except (json.JSONDecodeError, EOFError):
-                    return dict({'user': os.environ['USER'], 'token': None, 'path': self.PATH})
-        except FileNotFoundError:
-            return dict({'user': os.environ['USER'], 'token': None, 'path': self.PATH})
-
 
     async def mesh_join(self):
-        token = await self.join()
-        print("Join start, token=0x%x" % (token))
-        self.token_save(token);
+        print("Starting join...")
+        self.token_ring.token = await self.join()
+        print("Join start, token=0x%x" % (self.token_ring.token))
 
     async def mesh_leave(self):
-        token_conf = self.token_load()
-        if 'token' in token_conf:
-            self.token_ring.token = token_conf['token']
-        if 'path' in token_conf:
-            self.PATH = token_conf['path']
         await self.leave()
 
     async def run(self, arguments):
@@ -124,13 +99,12 @@ def main():
     Join client node Sample Application
 
     Usage:
-        join_client.py [-V] [-s <path suffix>]
+        join_client.py [-V]
         join_client.py [-V] -l
         join_client.py [-h | --help]
         join_client.py --version
 
     Options:
-        -s <path suffix>        Suffix for DBUS path
         -l                      Leave node
         -V                      Show verbose messages
         -h --help               Show this screen
@@ -141,13 +115,12 @@ def main():
 
     if arguments['-V']:
         logging.basicConfig(level=logging.DEBUG)
-    if arguments['-s']:
-        path_suffix = arguments['-s']
     else:
         path_suffix = os.environ['USER']
 
-    loop = asyncio.get_event_loop()
-    app = SampleApplication(path_suffix, loop)
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    app = SampleApplication(loop)
 
     with suppress(KeyboardInterrupt):
         loop.run_until_complete(app.run(arguments))

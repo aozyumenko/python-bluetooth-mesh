@@ -40,8 +40,7 @@ from bluetooth_mesh.models.light.hsl import LightHSLClient
 
 G_SEND_INTERVAL = 0.1
 G_TIMEOUT = 10.0
-G_JSON_CONF = "join_client_" + os.environ['USER'] +".json"
-
+G_PATH = "/com/silvair/sample_" + os.environ['USER']
 
 log = logging.getLogger()
 
@@ -76,27 +75,18 @@ class SampleApplication(Application):
 
     CRPL = 32768
 
-    @property
-    def iv_index(self):
-        return 0
 
-    def token_load(self):
-        try:
-            with open(G_JSON_CONF, "r") as tokenfile:
-                try:
-                    return json.load(tokenfile)
-                except (json.JSONDecodeError, EOFError):
-                    return dict({'user': os.environ['USER'], 'token': None, 'path': self.PATH})
-        except FileNotFoundError:
-            return dict({'user': os.environ['USER'], 'token': None, 'path': self.PATH})
+    @property
+    def path(self) -> str:
+        return G_PATH
 
 
     async def get(self, addr, app_index, arguments):
         client = self.elements[0][GenericBatteryClient]
-        result = await client.get([addr], app_index=app_index,
+        result = await client.get(addr, app_index=app_index,
                                   send_interval=G_SEND_INTERVAL,
                                   timeout=G_TIMEOUT)
-        print(result[addr])
+        print(result)
 
 
     async def listen(self, addr, app_index, arguments):
@@ -118,12 +108,6 @@ class SampleApplication(Application):
 
     async def run(self, addr, app_index, cmd, arguments):
         async with self:
-            token_conf = self.token_load()
-            if 'token' in token_conf:
-                self.token_ring.token = token_conf['token']
-            if 'path' in token_conf:
-                self.PATH = token_conf['path']
-
             await self.connect()
 
             if cmd == "get":
@@ -166,7 +150,8 @@ def main():
         print(doc)
         exit(-1)
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     app = SampleApplication(loop)
 
     with suppress(KeyboardInterrupt):
