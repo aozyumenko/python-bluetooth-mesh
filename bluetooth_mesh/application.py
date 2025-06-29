@@ -325,7 +325,7 @@ class DBusMixin:
         pass
 
     def dbus_disconnected(self, owner) -> Any:
-        #self.loop.stop()
+        self.loop.stop()
         pass
 
     async def __aenter__(self) -> "DBusMixin":

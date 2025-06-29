@@ -115,7 +115,7 @@ class LightCTLClient(Model):
         ctl_lightness: int,
         ctl_temperature: int,
         ctl_delta_uv: int,
-        delay: Optional[float] = None
+        delay: Optional[float] = None,
         transition_time: Optional[float] = None,
         *,
         send_interval: Optional[float] = None,
