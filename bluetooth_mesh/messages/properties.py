@@ -176,6 +176,9 @@ class PropertyID(IntEnum):
     DESIRED_AMBIENT_TEMPERATURE = 0x0071
     PRECISE_TOTAL_DEVICE_ENERGY_USE = 0x0072
     PRECISE_PRESENT_AMBIENT_TEMPERATURE = 0x0075
+    PRESENT_AMBIENT_RELATIVE_HUMIDITY_PROPERTY_ID = 0x0076
+    PRESENT_INDOOR_RELATIVE_HUMIDITY_PROPERTY_ID = 0x00A7
+    PRESENT_OUTDOOR_RELATIVE_HUMIDITY_PROPERTY_ID = 0x00A8
 
     def __repr__(self):
         return str(self.value)
@@ -392,6 +395,11 @@ RelativeValueInATemperatureRange = Struct(
     "relative_value" / DefaultCountValidator(Int8ul, rounding=1, resolution=0.5, unknown_value=False),
     "minimum_temperature" / DefaultCountValidator(Int16sl, rounding=2, resolution=0.01),
     "maximum_temperature" / DefaultCountValidator(Int16sl, rounding=2, resolution=0.01)
+)
+
+# humidity
+Humidity = Struct(
+    "humidity" / DefaultCountValidator(Int16sl, rounding=2, resolution=0.01)
 )
 
 
@@ -628,6 +636,9 @@ PropertyDict = {
     PropertyID.DESIRED_AMBIENT_TEMPERATURE: Temperature8,
     PropertyID.PRECISE_TOTAL_DEVICE_ENERGY_USE: Energy32,
     PropertyID.PRECISE_PRESENT_AMBIENT_TEMPERATURE: Temperature,
+    PropertyID.PRESENT_AMBIENT_RELATIVE_HUMIDITY_PROPERTY_ID: Humidity,
+    PropertyID.PRESENT_INDOOR_RELATIVE_HUMIDITY_PROPERTY_ID: Humidity,
+    PropertyID.PRESENT_OUTDOOR_RELATIVE_HUMIDITY_PROPERTY_ID: Humidity,
 }
 
 PropertyValue = Switch(
