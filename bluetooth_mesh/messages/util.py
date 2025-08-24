@@ -183,8 +183,14 @@ def LogAdapter(subcon, *, max_value=None, infinity=False):
     return _LogAdapter(subcon)
 
 
-def RangeValidator(subcon, *, min_value=None, max_value=None):
+def RangeValidator(subcon, *, min_value=None, max_value=None, valid_value=None):
     def validate_range(obj, ctx):
+        if valid_value is not None:
+            if isinstance(valid_value, list) and obj in valid_value:
+                return True
+            elif obj == valid_value:
+                return True
+
         if min_value is not None and obj < min_value:
             return False
 

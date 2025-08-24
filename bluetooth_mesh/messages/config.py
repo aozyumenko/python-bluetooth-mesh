@@ -37,6 +37,7 @@ from construct import (
     Int8ul,
     Int16ul,
     Int24ul,
+    Float32b,
     Padding,
     Rebuild,
     Select,
@@ -418,7 +419,7 @@ NodeIdentityAdapter = EnumAdapter(Int8ul, NodeIdentity)
 
 FriendAdapter = EnumAdapter(Int8ul, Friend)
 
-TTL = RangeValidator(Int8ul, max_value=0x7F)
+TTL = RangeValidator(Int8ul, max_value=0x7F, valid_value=0xFF)
 
 # fmt: off
 SIGModelId = Struct(
@@ -605,8 +606,8 @@ NetworkRetransmit = RetransmitAdapter(
 RelayRetransmit = NetworkRetransmit  # (Relay Retransmit Interval Steps + 1) * 10ms
 
 PublishRetransmit = RetransmitAdapter(
-    Retransmit, 50
-)  # (Publish Retransmit Interval Steps + 1) * 50ms
+    Retransmit, 0.05
+)  # (Publish Retransmit Interval Steps + 1) * 0.05s
 
 
 def DoubleKeyIndex(first, second):
@@ -681,35 +682,34 @@ KeyIndices.__construct_doc__ = GreedyRange(BitsInteger(12))
 # fmt: on
 
 
-class PublishPeriodStepResolution(enum.IntEnum):
-    RESOLUTION_100_MS = 0x0
-    RESOLUTION_1_S = 0x1
-    RESOLUTION_10_S = 0x2
-    RESOLUTION_10_MIN = 0x3
+class PublishPeriodAdapter(Adapter):
+    _subcon = Float32b
+    RESOLUTION = {0b00: 0.1, 0b01: 1, 0b10: 10, 0b11: 10 * 60}
 
-    @property
-    def multiplier(self):
-        if self == PublishPeriodStepResolution.RESOLUTION_100_MS:
-            return timedelta(milliseconds=100)
+    def __init__(self, subcon, allow_unknown=False):
+        self.max_steps = 0x3F if allow_unknown else 0x3E
+        super().__init__(subcon)
 
-        if self == PublishPeriodStepResolution.RESOLUTION_1_S:
-            return timedelta(seconds=1)
+    def _decode(self, obj, context, path):
+        return obj["number_of_steps"] * self.RESOLUTION[obj["step_resolution"]]
 
-        if self == PublishPeriodStepResolution.RESOLUTION_10_S:
-            return timedelta(seconds=10)
+    def _encode(self, obj, context, path):
+        step_resolution = None
+        number_of_steps = None
+        for range_index, range_value in self.RESOLUTION.items():
+            if obj <= range_value * 0x3F:
+                step_resolution = range_index
+                number_of_steps = obj / range_value
+                assert round(number_of_steps, 0) <= self.max_steps, "Unknown not allowed"
+                break
 
-        if self == PublishPeriodStepResolution.RESOLUTION_10_MIN:
-            return timedelta(minutes=10)
+        assert step_resolution is not None
 
+        return dict(number_of_steps=int(number_of_steps), step_resolution=step_resolution)
 
-# fmt: off
-PublishPeriodStepResolutionAdapter = EnumAdapter(
-    BitsInteger(2),
-    PublishPeriodStepResolution
-)
 
 PublishPeriod = BitStruct(
-    "step_resolution" / PublishPeriodStepResolutionAdapter,
+    "step_resolution" / BitsInteger(2),
     "number_of_steps" / BitsInteger(6),
 )
 
@@ -787,7 +787,7 @@ ConfigModelPublicationSet = Struct(
         reversed=True
     ),
     "ttl" / TTL,
-    "publish_period" / PublishPeriod,
+    "publish_period" / PublishPeriodAdapter(PublishPeriod, allow_unknown=True),
     "retransmit" / PublishRetransmit,
     "model" / ModelId,
 )

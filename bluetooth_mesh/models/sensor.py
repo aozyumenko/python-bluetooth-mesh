@@ -157,7 +157,6 @@ class SensorClient(Model):
             fast_cadence_low=fast_cadence_low,
             fast_cadence_high=fast_cadence_high,
         )
-        print(params)
         return await self.client_simple_set(
             destination=destination,
             app_index=app_index,

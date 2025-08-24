@@ -35,7 +35,7 @@ from bluetooth_mesh.messages.config import (
     CompositionData,
     ConfigOpcode,
     PublishFriendshipCredentialsFlag,
-    PublishPeriodStepResolution,
+#    PublishPeriodStepResolution,
     SecureNetworkBeacon,
     StatusCode,
 )
@@ -793,7 +793,14 @@ class ConfigClient(Model):
         )
 
     async def get_publication(
-        self, destination: int, net_index: int, element_address: int, model: Type[Model]
+        self,
+        destination: int,
+        net_index: int,
+        element_address: int,
+        model: Type[Model],
+        *,
+        send_interval: Optional[float] = None,
+        timeout: Optional[float] = None
     ) -> ModelPublicationStatus:
         status_opcode = ConfigOpcode.CONFIG_MODEL_PUBLICATION_STATUS
         params_name = status_opcode.name.lower()
@@ -815,18 +822,16 @@ class ConfigClient(Model):
             ),
         )
 
-        status = await self.query(request, status)
-
-        period = (
-            status[params_name]["publish_period"]["step_resolution"].multiplier
-            * status[params_name]["publish_period"]["number_of_steps"]
+        status = await self.query(
+            request,
+            status,
+            send_interval=send_interval,
+            timeout=timeout,
         )
 
         retransmissions = dict(
             count=status[params_name]["retransmit"]["count"],
-            interval=timedelta(
-                milliseconds=status[params_name]["retransmit"]["interval"]
-            ),
+            interval=status[params_name]["retransmit"]["interval"],
         )
 
         return ModelPublicationStatus(
@@ -834,7 +839,7 @@ class ConfigClient(Model):
             status[params_name]["publish_address"],
             status[params_name]["ttl"],
             status[params_name]["app_key_index"],
-            period,
+            status[params_name]["publish_period"],
             retransmissions,
             model,
         )
@@ -847,11 +852,13 @@ class ConfigClient(Model):
         publication_address: int,
         app_key_index: int,
         model: Type[Model],
-        ttl: int = 8,
-        publish_step_resolution: PublishPeriodStepResolution = PublishPeriodStepResolution.RESOLUTION_10_S,
-        publish_number_of_steps: int = 6,  # 60seconds
-        retransmit_count: int = 0,
-        retransmit_interval: int = 50,
+        ttl: int = 0xff,                        # default TTL
+        publish_period: float = 60.0,           # 60seconds
+        retransmit_count: int = 0,              # no retransmit
+        retransmit_interval: float = 0.05,      # 50ms
+        *,
+        send_interval: Optional[float] = None,
+        timeout: Optional[float] = None
     ) -> ModelPublicationStatus:
         status_opcode = ConfigOpcode.CONFIG_MODEL_PUBLICATION_STATUS
         params_name = status_opcode.name.lower()
@@ -867,11 +874,8 @@ class ConfigClient(Model):
                 ttl=ttl,
                 app_key_index=app_key_index,
                 credential_flag=PublishFriendshipCredentialsFlag.MASTER_SECURITY,
-                RFU=0,
-                publish_period=dict(
-                    step_resolution=publish_step_resolution,
-                    number_of_steps=publish_number_of_steps,
-                ),
+                rfu=0,
+                publish_period=publish_period,
                 retransmit=dict(count=retransmit_count, interval=retransmit_interval),
                 model=self._get_model_id(model),
             ),
@@ -888,31 +892,21 @@ class ConfigClient(Model):
                 ttl=ttl,
                 app_key_index=app_key_index,
                 credential_flag=PublishFriendshipCredentialsFlag.MASTER_SECURITY,
-                RFU=0,
-                publish_period=dict(
-                    step_resolution=publish_step_resolution,
-                    number_of_steps=publish_number_of_steps,
-                ),
+                rfu=0,
+                publish_period=publish_period,
                 retransmit=dict(count=retransmit_count, interval=retransmit_interval),
                 model=self._get_model_id(model),
             ),
         )
 
-        status = await self.query(request, status, send_interval=0.2, timeout=4)
+        status = await self.query(request, status, send_interval=send_interval, timeout=timeout)
 
         if status[params_name]["status"] != StatusCode.SUCCESS:
             raise ModelOperationError("Cannot add subscription", status)
 
-        period = (
-            status[params_name]["publish_period"]["step_resolution"].multiplier
-            * status[params_name]["publish_period"]["number_of_steps"]
-        )
-
         retransmissions = dict(
             count=status[params_name]["retransmit"]["count"],
-            interval=timedelta(
-                milliseconds=status[params_name]["retransmit"]["interval"]
-            ),
+            interval=status[params_name]["retransmit"]["interval"],
         )
 
         return ModelPublicationStatus(
@@ -920,7 +914,7 @@ class ConfigClient(Model):
             status[params_name]["publish_address"],
             status[params_name]["ttl"],
             status[params_name]["app_key_index"],
-            period,
+            status[params_name]["publish_period"],
             retransmissions,
             model,
         )
