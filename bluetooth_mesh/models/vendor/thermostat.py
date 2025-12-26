@@ -201,7 +201,7 @@ class VendorModel(Model):
             params=dict(),
         )
 
-        result = await self.bulk_query(
+        result = await self.query(
             request,
             status,
             send_interval=send_interval,
