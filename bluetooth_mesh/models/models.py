@@ -49,6 +49,10 @@ __all__ = [
     "ConfigClient",
     "HealthServer",
     "HealthClient",
+    "RemoteProvisioningServer",
+    "RemoteProvisioningClient",
+    "PrivateBeaconServer",
+    "PrivateBeaconClient",
 ]
 
 AppKeyStatus = NamedTuple(
@@ -1023,3 +1027,32 @@ class HealthClient(Model):
         )
 
         await self.repeat(request)
+
+
+# unimplemented models
+class RemoteProvisioningServer(Model):
+    MODEL_ID = (None, 0x0004)
+    OPCODES = {}
+    PUBLISH = True
+    SUBSCRIBE = True
+
+
+class RemoteProvisioningClient(Model):
+    MODEL_ID = (None, 0x0005)
+    OPCODES = {}
+    PUBLISH = True
+    SUBSCRIBE = True
+
+
+class PrivateBeaconServer(Model):
+    MODEL_ID = (None, 0x0008)
+    OPCODES = {}
+    PUBLISH = True
+    SUBSCRIBE = True
+
+
+class PrivateBeaconClient(Model):
+    MODEL_ID = (None, 0x0009)
+    OPCODES = {}
+    PUBLISH = True
+    SUBSCRIBE = True
