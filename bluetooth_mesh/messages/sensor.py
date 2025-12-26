@@ -21,7 +21,7 @@
 #
 import io
 from enum import IntEnum
-from math import log, pow
+from math import log, pow, ceil
 
 from construct import (
     Array,
@@ -337,9 +337,9 @@ SensorCadenceOptional = Struct(
         }
     ),
     "status_min_interval" / ExprAdapter(
-        Int8ul, 
-        lambda obj, ctx: int(pow(2, obj)),
-        lambda obj, ctx: int(log(obj, 2))
+        Int8ul,
+        lambda obj, ctx: ceil(pow(2, obj)) / 1000,
+        lambda obj, ctx: ceil(log(obj * 1000, 2))
     ),
     "fast_cadence_low" / PropertyValue,
     "fast_cadence_high" / PropertyValue

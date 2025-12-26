@@ -109,4 +109,4 @@ venv.bak/
 .idea/
 
 # debug helpers
-examples/start_*.sh
+examples/start*.sh

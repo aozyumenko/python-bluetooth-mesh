@@ -53,7 +53,6 @@ class VendorModel(Model):
 
     def __init__(self, element: "Element"):
         self.OPCODES = { self.OPCODE };
-        print(self.OPCODES)
         super().__init__(element);
 
 

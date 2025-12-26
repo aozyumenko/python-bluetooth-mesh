@@ -637,12 +637,6 @@ class Application(
             )
             configuration = await self.attach(token, **kwargs)
 
-        # after attaching, explicitly import own device key to enable
-        # communication with local Config Server
-        await self.management_interface.import_remote_node(
-            self.address, len(self.ELEMENTS), self.dev_key
-        )
-
         return configuration
 
     async def add_net_key(self, net_key_index: int, net_key: NetworkKey) -> Any:
