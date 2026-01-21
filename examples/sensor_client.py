@@ -100,7 +100,7 @@ class SampleApplication(Application):
         )
         print(result)
 
-    async def get(self, addr, app_index, arguments):
+    async def get(self, app_index, arguments):
         addr = int(arguments["-a"], 16)
         client = self.elements[0][SensorClient]
         property_id = int(arguments["-p"], 16) if arguments["-p"] else None
