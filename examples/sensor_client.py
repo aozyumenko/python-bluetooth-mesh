@@ -8,6 +8,7 @@ import secrets
 from contextlib import suppress
 from uuid import UUID
 import yaml
+from enum import IntEnum
 from typing import (Union)
 from datetime import datetime
 from construct import Container
@@ -264,6 +265,8 @@ def main():
     else:
         print(doc)
         exit(-1)
+
+    yaml.add_multi_representer(IntEnum, lambda dumper, data: dumper.represent_int(data.value))
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
