@@ -40,6 +40,7 @@ from construct import (
     Byte,
     BytesInteger,
     Embedded,
+    Enum,
     ExprAdapter,
     Flag,
     Float32b,
@@ -57,7 +58,7 @@ from construct import (
 )
 
 from bluetooth_mesh.messages.config import EmbeddedBitStruct
-from bluetooth_mesh.messages.util import DefaultCountValidator
+from bluetooth_mesh.messages.util import DefaultCountValidator, EnumAdapter
 
 
 class PropertyID(IntEnum):
@@ -179,6 +180,11 @@ class PropertyID(IntEnum):
     PRESENT_AMBIENT_RELATIVE_HUMIDITY = 0x0076
     PRESENT_INDOOR_RELATIVE_HUMIDITY = 0x00A7
     PRESENT_OUTDOOR_RELATIVE_HUMIDITY = 0x00A8
+    PRESSURE = 0x00A9
+
+    # Vendor Property identifiers
+    VENDOR_VOLUME_CONSUMPTION = 0xF000
+    VENDOR_LEAK_SENSOR = 0xF001
 
     def __repr__(self):
         return str(self.value)
@@ -520,6 +526,27 @@ RelativeRuntimeInAGenericLevelRange = Struct(
     "maximum_generic_level" / DefaultCountValidator(Int16ul, unknown_value=False),
 )
 
+Pressure = Struct(
+    "pressure" / DefaultCountValidator(Int32ul, resolution=0.1)
+)
+
+VendorVolumeConsumption = Struct(
+    "volume_consumption" / DefaultCountValidator(Int32ul, resolution=0.001)
+)
+
+class LeakStatus(IntEnum):
+    LEAK_STATUS_GOOD = 0
+    LEAK_STATUS_LEAK = 1
+    LEAK_STATUS_DISABLED = 2
+    LEAK_STATUS_FAILURE = 3
+
+    def __repr__(self):
+        return str(self.value)
+
+VendorLeakSensor = Struct(
+    "leak_sensor" / EnumAdapter(Int8ul, LeakStatus)
+)
+
 PropertyDict = {
     PropertyID.AVERAGE_AMBIENT_TEMPERATURE_IN_A_PERIOD_OF_DAY: Temperature8InAPeriodOfDay,
     PropertyID.AVERAGE_INPUT_CURRENT: AverageCurrent,
@@ -639,6 +666,9 @@ PropertyDict = {
     PropertyID.PRESENT_AMBIENT_RELATIVE_HUMIDITY: Humidity,
     PropertyID.PRESENT_INDOOR_RELATIVE_HUMIDITY: Humidity,
     PropertyID.PRESENT_OUTDOOR_RELATIVE_HUMIDITY: Humidity,
+    PropertyID.PRESSURE: Pressure,
+    PropertyID.VENDOR_VOLUME_CONSUMPTION: VendorVolumeConsumption,
+    PropertyID.VENDOR_LEAK_SENSOR: VendorLeakSensor,
 }
 
 PropertyValue = Switch(
