@@ -184,7 +184,7 @@ class PropertyID(IntEnum):
 
     # Vendor Property identifiers
     VENDOR_VOLUME_CONSUMPTION = 0xF000
-    VENDOR_LEAK_SENSOR = 0xF001
+    VENDOR_LEAK_DETECTED = 0xF001
 
     def __repr__(self):
         return str(self.value)
@@ -534,17 +534,8 @@ VendorVolumeConsumption = Struct(
     "volume_consumption" / DefaultCountValidator(Int32ul, resolution=0.001)
 )
 
-class LeakStatus(IntEnum):
-    LEAK_STATUS_GOOD = 0
-    LEAK_STATUS_LEAK = 1
-    LEAK_STATUS_DISABLED = 2
-    LEAK_STATUS_FAILURE = 3
-
-    def __repr__(self):
-        return str(self.value)
-
-VendorLeakSensor = Struct(
-    "leak_sensor" / EnumAdapter(Int8ul, LeakStatus)
+VendorLeakDetected = Struct(
+    "leak_detected" / Flag
 )
 
 PropertyDict = {
@@ -668,7 +659,7 @@ PropertyDict = {
     PropertyID.PRESENT_OUTDOOR_RELATIVE_HUMIDITY: Humidity,
     PropertyID.PRESSURE: Pressure,
     PropertyID.VENDOR_VOLUME_CONSUMPTION: VendorVolumeConsumption,
-    PropertyID.VENDOR_LEAK_SENSOR: VendorLeakSensor,
+    PropertyID.VENDOR_LEAK_DETECTED: VendorLeakDetected,
 }
 
 PropertyValue = Switch(
