@@ -47,8 +47,6 @@ from bluetooth_mesh.utils import ModelOperationError, ProgressCallback
 __all__ = [
     "ConfigServer",
     "ConfigClient",
-    "HealthServer",
-    "HealthClient",
     "RemoteProvisioningServer",
     "RemoteProvisioningClient",
     "PrivateBeaconServer",
@@ -957,76 +955,6 @@ class ConfigClient(Model):
         )
 
         return status[status_opcode.name.lower()]["beacon"]
-
-
-class HealthServer(Model):
-    MODEL_ID = (None, 0x0002)
-    OPCODES = {
-        HealthOpcode.HEALTH_FAULT_GET,
-        HealthOpcode.HEALTH_FAULT_CLEAR,
-        HealthOpcode.HEALTH_FAULT_CLEAR_UNACKNOWLEDGED,
-        HealthOpcode.HEALTH_FAULT_TEST,
-        HealthOpcode.HEALTH_FAULT_TEST_UNACKNOWLEDGED,
-        HealthOpcode.HEALTH_PERIOD_GET,
-        HealthOpcode.HEALTH_PERIOD_SET,
-        HealthOpcode.HEALTH_PERIOD_SET_UNACKNOWLEDGED,
-        HealthOpcode.HEALTH_ATTENTION_GET,
-        HealthOpcode.HEALTH_ATTENTION_SET,
-        HealthOpcode.HEALTH_ATTENTION_SET_UNACKNOWLEDGED,
-    }
-    PUBLISH = True
-    SUBSCRIBE = True
-
-
-class HealthClient(Model):
-    MODEL_ID = (None, 0x0003)
-    OPCODES = {
-        HealthOpcode.HEALTH_CURRENT_STATUS,
-        HealthOpcode.HEALTH_FAULT_STATUS,
-        HealthOpcode.HEALTH_PERIOD_STATUS,
-        HealthOpcode.HEALTH_ATTENTION_STATUS,
-    }
-    PUBLISH = True
-    SUBSCRIBE = True
-
-    async def attention(self, destination: int, app_index: int, attention: int) -> int:
-        status_opcode = HealthOpcode.HEALTH_ATTENTION_STATUS
-
-        status = self.expect_app(
-            destination,
-            app_index=app_index,
-            destination=None,
-            opcode=status_opcode,
-            params=dict(
-                attention=attention,
-            ),
-        )
-
-        request = partial(
-            self.send_app,
-            destination,
-            app_index=app_index,
-            opcode=HealthOpcode.HEALTH_ATTENTION_SET,
-            params=dict(
-                attention=attention,
-            ),
-        )
-
-        status = await self.query(request, status)
-        return status[status_opcode.name.lower()]["attention"]
-
-    async def attention_unack(self, destination: int, app_index: int, attention: int):
-        request = partial(
-            self.send_app,
-            destination,
-            app_index=app_index,
-            opcode=HealthOpcode.HEALTH_ATTENTION_SET_UNACKNOWLEDGED,
-            params=dict(
-                attention=attention,
-            ),
-        )
-
-        await self.repeat(request)
 
 
 # unimplemented models

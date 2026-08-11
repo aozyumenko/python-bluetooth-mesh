@@ -2,6 +2,7 @@
 
 from .base import *
 from .models import *
+from .health import *
 from .scene import *
 from .sensor import *
 from .time import *
