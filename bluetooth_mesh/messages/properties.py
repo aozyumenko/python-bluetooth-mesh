@@ -182,10 +182,6 @@ class PropertyID(IntEnum):
     PRESENT_OUTDOOR_RELATIVE_HUMIDITY = 0x00A8
     PRESSURE = 0x00A9
 
-    # Vendor Property identifiers
-    VENDOR_VOLUME_CONSUMPTION = 0xF000
-    VENDOR_LEAK_DETECTED = 0xF001
-
     def __repr__(self):
         return str(self.value)
 
