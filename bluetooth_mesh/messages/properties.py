@@ -40,7 +40,6 @@ from construct import (
     Byte,
     BytesInteger,
     Embedded,
-    Enum,
     ExprAdapter,
     Flag,
     Float32b,
@@ -654,13 +653,11 @@ PropertyDict = {
     PropertyID.PRESENT_INDOOR_RELATIVE_HUMIDITY: Humidity,
     PropertyID.PRESENT_OUTDOOR_RELATIVE_HUMIDITY: Humidity,
     PropertyID.PRESSURE: Pressure,
-    PropertyID.VENDOR_VOLUME_CONSUMPTION: VendorVolumeConsumption,
-    PropertyID.VENDOR_LEAK_DETECTED: VendorLeakDetected,
 }
 
 PropertyValue = Switch(
     this.sensor_setting_property_id,
-        PropertyDict,
-        default=Array(this.length, Byte)
+    PropertyDict,
+    default=Array(this.length, Byte)
 )
 # fmt: off
