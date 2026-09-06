@@ -23,8 +23,7 @@
 """
 This module implements Scene mesh models, both clients and servers.
 """
-from functools import partial
-from typing import Any, Dict, Iterable, NamedTuple, Optional, Tuple, Type
+from typing import Any, Dict, Optional
 
 from bluetooth_mesh.models.base import Model
 from bluetooth_mesh.messages.scene import SceneOpcode
@@ -32,17 +31,26 @@ from bluetooth_mesh.messages.scene import SceneOpcode
 
 __all__ = [
     "SceneServer",
+    "SceneSetupServer",
     "SceneClient",
 ]
 
 
 class SceneServer(Model):
-    MODEL_ID = (None, 0x1204)
+    MODEL_ID = (None, 0x1203)
     OPCODES = {
         SceneOpcode.SCENE_GET,
         SceneOpcode.SCENE_RECALL,
         SceneOpcode.SCENE_RECALL_UNACKNOWLEDGED,
         SceneOpcode.SCENE_REGISTER_GET,
+    }
+    PUBLISH = True
+    SUBSCRIBE = True
+
+
+class SceneSetupServer(Model):
+    MODEL_ID = (None, 0x1204)
+    OPCODES = {
         SceneOpcode.SCENE_STORE,
         SceneOpcode.SCENE_STORE_UNACKNOWLEDGED,
         SceneOpcode.SCENE_DELETE,
@@ -50,7 +58,6 @@ class SceneServer(Model):
     }
     PUBLISH = True
     SUBSCRIBE = True
-
 
 
 class SceneClient(Model):
