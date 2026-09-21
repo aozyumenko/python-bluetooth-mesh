@@ -3,20 +3,22 @@
 import os
 import logging
 import asyncio
-import secrets
 from contextlib import suppress
 from uuid import UUID
+from typing import Union
 
 from docopt import docopt
 
+from bluetooth_mesh.utils import ParsedMeshMessage
 from bluetooth_mesh.application import Application, Element, Capabilities
 from bluetooth_mesh.crypto import ApplicationKey, DeviceKey, NetworkKey
 from bluetooth_mesh.messages.config import GATTNamespaceDescriptor, StatusCode
+from bluetooth_mesh.messages.scene import SceneOpcode
+
 from bluetooth_mesh.models import (
     ConfigClient,
     HealthClient,
 )
-
 from bluetooth_mesh.models.generic.onoff import GenericOnOffClient
 from bluetooth_mesh.models.generic.level import GenericLevelClient
 from bluetooth_mesh.models.generic.dtt import GenericDTTClient
@@ -31,8 +33,10 @@ from bluetooth_mesh.models.light.hsl import LightHSLClient
 
 
 
+G_SEND_INTERVAL = 0.5
+G_TIMEOUT = 10.0
+G_UNACK_RETRANSMISSIONS = 3
 G_PATH = "/com/silvair/sample_" + os.environ['USER']
-
 log = logging.getLogger()
 
 
@@ -69,12 +73,19 @@ class SampleApplication(Application):
     PATH = G_PATH
 
 
-    async def get(self, addr, app_index, arguments):
+    async def get(self, app_index, arguments):
+        addr = int(arguments["-a"], 16)
         client = self.elements[0][SceneClient]
-        result = await client.get(addr, app_index=app_index)
+        result = await client.get(
+            addr,
+            app_index=app_index,
+            send_interval=G_SEND_INTERVAL,
+            timeout=G_TIMEOUT
+        )
         print(result)
 
-    async def recall(self, addr, app_index, arguments):
+    async def recall(self, app_index, arguments):
+        addr = int(arguments["-a"], 16)
         client = self.elements[0][SceneClient]
         scene_number = int(arguments['<number>'])
         transition_time = float(arguments['--transition']) if arguments['--transition'] else None
@@ -82,11 +93,14 @@ class SampleApplication(Application):
             addr,
             app_index=app_index,
             scene_number=scene_number,
-            transition_time=transition_time
+            transition_time=transition_time,
+            send_interval=G_SEND_INTERVAL,
+            timeout=G_TIMEOUT
         )
         print(result)
 
-    async def recall_unack(self, addr, app_index, arguments):
+    async def recall_unack(self, app_index, arguments):
+        addr = int(arguments["-a"], 16)
         client = self.elements[0][SceneClient]
         scene_number = int(arguments['<number>'])
         transition_time = float(arguments['--transition']) if arguments['--transition'] else None
@@ -94,73 +108,113 @@ class SampleApplication(Application):
             addr,
             app_index=app_index,
             scene_number=scene_number,
-            transition_time=transition_time
+            transition_time=transition_time,
+            send_interval=G_SEND_INTERVAL,
+            retransmissions=G_UNACK_RETRANSMISSIONS
         )
 
-    async def register_get(self, addr, app_index, arguments):
+    async def register_get(self, app_index, arguments):
+        addr = int(arguments["-a"], 16)
         client = self.elements[0][SceneClient]
-        result = await client.register_get(addr, app_index=app_index)
+        result = await client.register_get(
+            addr,
+            app_index=app_index,
+            send_interval=G_SEND_INTERVAL,
+            timeout=G_TIMEOUT
+        )
         print(result)
 
-    async def store(self, addr, app_index, arguments):
+    async def store(self, app_index, arguments):
+        addr = int(arguments["-a"], 16)
         client = self.elements[0][SceneClient]
         scene_number = int(arguments['<number>'])
         result = await client.store(
             addr,
             app_index=app_index,
-            scene_number=scene_number
+            scene_number=scene_number,
+            send_interval=G_SEND_INTERVAL,
+            timeout=G_TIMEOUT
         )
         print(result)
 
-    async def store_unack(self, addr, app_index, arguments):
+    async def store_unack(self, app_index, arguments):
+        addr = int(arguments["-a"], 16)
         client = self.elements[0][SceneClient]
         scene_number = int(arguments['<number>'])
         await client.store_unack(
             addr,
             app_index=app_index,
-            scene_number=scene_number
+            scene_number=scene_number,
+            send_interval=G_SEND_INTERVAL,
+            retransmissions=G_UNACK_RETRANSMISSIONS
         )
 
-    async def delete(self, addr, app_index, arguments):
+    async def delete(self, app_index, arguments):
+        addr = int(arguments["-a"], 16)
         client = self.elements[0][SceneClient]
         scene_number = int(arguments['<number>'])
         result = await client.delete(
             addr,
             app_index=app_index,
-            scene_number=scene_number
+            scene_number=scene_number,
+            send_interval=G_SEND_INTERVAL,
+            timeout=G_TIMEOUT
         )
         print(result)
 
-    async def delete_unack(self, addr, app_index, arguments):
+    async def delete_unack(self, app_index, arguments):
+        addr = int(arguments["-a"], 16)
         client = self.elements[0][SceneClient]
         scene_number = int(arguments['<number>'])
         await client.delete_unack(
             addr,
             app_index=app_index,
-            scene_number=scene_number
+            scene_number=scene_number,
+            send_interval=G_SEND_INTERVAL,
+            retransmissions=G_UNACK_RETRANSMISSIONS
         )
 
+    async def listen(self, app_index, arguments):
+        def receive_status(
+            _source: int,
+            _app_index: int,
+            _destination: Union[int, UUID],
+            message: ParsedMeshMessage,
+        ):
+            now = datetime.now()
+            print(f"{now}: receive {_source:04x}->{_destination:04x}")
+            print(message)
 
-    async def run(self, addr, app_index, cmd, arguments):
+        client = self.elements[0][SceneClient]
+        client.app_message_callbacks[SceneOpcode.SCENE_STATUS].add(receive_status)
+        client.app_message_callbacks[SceneOpcode.SCENE_REGISTER_STATUS].add(receive_status)
+
+        while True:
+            await asyncio.sleep(10)
+
+
+    async def run(self, app_index, cmd, arguments):
         async with self:
             await self.connect()
 
             if cmd == "get":
-                await self.get(addr, app_index, arguments)
+                await self.get(app_index, arguments)
             elif cmd == "recall":
-                await self.recall(addr, app_index, arguments)
+                await self.recall(app_index, arguments)
             elif cmd == "recall_unack":
-                await self.recall_unack(addr, app_index, arguments)
+                await self.recall_unack(app_index, arguments)
             elif cmd == "register_get":
-                await self.register_get(addr, app_index, arguments)
+                await self.register_get(app_index, arguments)
             elif cmd == "store":
-                await self.store(addr, app_index, arguments)
+                await self.store(app_index, arguments)
             elif cmd == "store_unack":
-                await self.store_unack(addr, app_index, arguments)
+                await self.store_unack(app_index, arguments)
             elif cmd == "delete":
-                await self.delete(addr, app_index, arguments)
+                await self.delete(app_index, arguments)
             elif cmd == "delete_unack":
-                await self.delete_unack(addr, app_index, arguments)
+                await self.delete_unack(app_index, arguments)
+            elif cmd == "listen":
+                await self.listen(app_index, arguments)
 
 
 def main():
@@ -176,6 +230,7 @@ def main():
         scene_client.py [-V] -a <address> store_unack <number>
         scene_client.py [-V] -a <address> delete <number>
         scene_client.py [-V] -a <address> delete_unack <number>
+        scene_client.py [-V] listen
         scene_client.py [-h | --help]
         scene_client.py --version
 
@@ -192,12 +247,6 @@ def main():
 
     if arguments['-V']:
         logging.basicConfig(level=logging.DEBUG)
-
-    if arguments['-a']:
-        addr = int(arguments['-a'], 16)
-    else:
-        print(doc)
-        exit(-1)
 
     app_index = 0
     cmd = None
@@ -218,18 +267,18 @@ def main():
         cmd = 'delete'
     elif arguments['delete_unack']:
         cmd = 'delete_unack'
+    elif arguments["listen"]:
+        cmd = "listen"
     else:
         print(doc)
         exit(-1)
-
-    addr = int(arguments['-a'], 16)
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     app = SampleApplication(loop)
 
     with suppress(KeyboardInterrupt):
-        loop.run_until_complete(app.run(addr, app_index, cmd, arguments))
+        loop.run_until_complete(app.run(app_index, cmd, arguments))
 
 
 if __name__ == '__main__':

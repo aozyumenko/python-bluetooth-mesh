@@ -26,7 +26,7 @@ This module implements Scene mesh models, both clients and servers.
 from typing import Any, Dict, Optional
 
 from bluetooth_mesh.models.base import Model
-from bluetooth_mesh.messages.scene import SceneOpcode
+from bluetooth_mesh.messages.scene import SceneOpcode, SceneStatusCode
 
 
 __all__ = [
@@ -36,7 +36,29 @@ __all__ = [
 ]
 
 
-class SceneServer(Model):
+class SceneRegisterStatusMixin:
+    async def scene_register_status(
+        self,
+        destination: int,
+        app_index: int,
+        status_code: SceneStatusCode,
+        current_scene: int,
+        scenes: list[int]
+    ):
+        params = dict(
+            status_code=status_code,
+            current_scene=current_scene,
+            scenes=scenes,
+        )
+        await self.send_app(
+            destination=destination,
+            app_index=app_index,
+            opcode=SceneOpcode.SCENE_REGISTER_STATUS,
+            params=params,
+        )
+
+
+class SceneServer(Model, SceneRegisterStatusMixin):
     MODEL_ID = (None, 0x1203)
     OPCODES = {
         SceneOpcode.SCENE_GET,
@@ -47,8 +69,36 @@ class SceneServer(Model):
     PUBLISH = True
     SUBSCRIBE = True
 
+    async def scene_status(
+        self,
+        destination: int,
+        app_index: int,
+        status_code: SceneStatusCode,
+        current_scene: int,
+        target_scene: int | None = None,
+        remaining_time: int | None = None
+    ):
+        if target_scene:
+            params = dict(
+                status_code=status_code,
+                current_scene=current_scene,
+                target_scene=target_scene,
+                remaining_time=remaining_time,
+            )
+        else:
+            params = dict(
+                status_code=status_code,
+                current_scene=current_scene,
+            )
+        await self.send_app(
+            destination=destination,
+            app_index=app_index,
+            opcode=SceneOpcode.SCENE_STATUS,
+            params=params,
+        )
 
-class SceneSetupServer(Model):
+
+class SceneSetupServer(Model, SceneRegisterStatusMixin):
     MODEL_ID = (None, 0x1204)
     OPCODES = {
         SceneOpcode.SCENE_STORE,
