@@ -3,18 +3,15 @@
 import os
 import logging
 import asyncio
-import secrets
 from contextlib import suppress
 from uuid import UUID
-import json
 from typing import (Union)
 
 from docopt import docopt
 
 from bluetooth_mesh.utils import ParsedMeshMessage
 from bluetooth_mesh.application import Application, Element, Capabilities
-from bluetooth_mesh.crypto import ApplicationKey, DeviceKey, NetworkKey
-from bluetooth_mesh.messages.config import GATTNamespaceDescriptor, StatusCode
+from bluetooth_mesh.messages.config import GATTNamespaceDescriptor
 from bluetooth_mesh.messages.generic.onoff import GenericOnOffOpcode
 from bluetooth_mesh.models import (
     ConfigClient,
@@ -74,7 +71,6 @@ class SampleApplication(Application):
     CRPL = 32768
     PATH = G_PATH
 
-
     async def get(self, addr, app_index, arguments):
         client = self.elements[0][GenericOnOffClient]
         result = await client.get(addr, app_index=app_index,
@@ -85,24 +81,31 @@ class SampleApplication(Application):
     async def set(self, addr, app_index, arguments):
         client = self.elements[0][GenericOnOffClient]
         val = int(arguments['<val>'])
-        transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
-        result = await client.set(addr, app_index=app_index,
-                                  onoff=val,
-                                  transition_time=transition_time,
-                                  send_interval=G_SEND_INTERVAL,
-                                  timeout=G_TIMEOUT)
+        transition_time = float(arguments['--transition']) if arguments['--transition'] else None
+        delay = 0.0 if transition_time is not None else None
+        result = await client.set(
+            addr, app_index=app_index,
+            onoff=val,
+            transition_time=transition_time,
+            delay=delay,
+            send_interval=G_SEND_INTERVAL,
+            timeout=G_TIMEOUT
+        )
         print(result)
 
     async def set_unack(self, addr, app_index, arguments):
         client = self.elements[0][GenericOnOffClient]
         val = int(arguments['<val>'])
-        transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
-        await client.set_unack(addr, app_index=app_index,
-                               onoff=val,
-                               transition_time=transition_time,
-                               send_interval=G_SEND_INTERVAL,
-                               retransmissions=G_UNACK_RETRANSMISSIONS)
-
+        transition_time = float(arguments['--transition']) if arguments['--transition'] else None
+        delay = 0.0 if transition_time is not None else None
+        await client.set_unack(
+            addr, app_index=app_index,
+            onoff=val,
+            transition_time=transition_time,
+            delay=delay,
+            send_interval=G_SEND_INTERVAL,
+            retransmissions=G_UNACK_RETRANSMISSIONS
+        )
 
     async def listen(self, addr, app_index, arguments):
         def receive_status(
@@ -119,7 +122,6 @@ class SampleApplication(Application):
 
         while True:
             await asyncio.sleep(10)
-
 
     async def run(self, addr, app_index, cmd, arguments):
         async with self:

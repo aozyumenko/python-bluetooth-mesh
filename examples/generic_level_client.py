@@ -3,18 +3,15 @@
 import os
 import logging
 import asyncio
-import secrets
 from contextlib import suppress
 from uuid import UUID
-import json
 from typing import (Union)
 
 from docopt import docopt
 
 from bluetooth_mesh.utils import ParsedMeshMessage
 from bluetooth_mesh.application import Application, Element, Capabilities
-from bluetooth_mesh.crypto import ApplicationKey, DeviceKey, NetworkKey
-from bluetooth_mesh.messages.config import GATTNamespaceDescriptor, StatusCode
+from bluetooth_mesh.messages.config import GATTNamespaceDescriptor
 from bluetooth_mesh.messages.generic.level import GenericLevelOpcode
 from bluetooth_mesh.models import (
     ConfigClient,
@@ -73,7 +70,6 @@ class SampleApplication(Application):
     CRPL = 32768
     PATH = G_PATH
 
-
     async def get(self, addr, app_index, arguments):
         client = self.elements[0][GenericLevelClient]
         result = await client.get(addr, app_index=app_index,
@@ -84,65 +80,96 @@ class SampleApplication(Application):
     async def set(self, addr, app_index, arguments):
         client = self.elements[0][GenericLevelClient]
         level = -int(arguments['<level>'][2:]) if arguments['<level>'][0:2] == '0-' else int(arguments['<level>'])
-        transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
-        result = await client.set(addr, app_index=app_index,
-                                  level=level,
-                                  transition_time=transition_time,
-                                  send_interval=G_SEND_INTERVAL,
-                                  timeout=G_TIMEOUT)
+        transition_time = float(arguments['--transition']) if arguments['--transition'] else None
+        delay = 0.0 if transition_time is not None else None
+        print(f"transition_time={transition_time}, delay={delay}")
+
+        result = await client.set(
+            addr,
+            app_index=app_index,
+            level=level,
+            delay=delay,
+            transition_time=transition_time,
+            send_interval=G_SEND_INTERVAL,
+            timeout=G_TIMEOUT
+        )
         print(result)
 
     async def set_unack(self, addr, app_index, arguments):
         client = self.elements[0][GenericLevelClient]
         level = -int(arguments['<level>'][2:]) if arguments['<level>'][0:2] == '0-' else int(arguments['<level>'])
-        transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
-        await client.set_unack(addr, app_index=app_index,
-                               level=level,
-                               transition_time=transition_time,
-                               retransmissions=G_UNACK_RETRANSMISSIONS,
-                               send_interval=G_SEND_INTERVAL)
+        transition_time = float(arguments['--transition']) if arguments['--transition'] else None
+        delay = 0.0 if transition_time is not None else None
+        await client.set_unack(
+            addr,
+            app_index=app_index,
+            level=level,
+            delay=delay,
+            transition_time=transition_time,
+            retransmissions=G_UNACK_RETRANSMISSIONS,
+            send_interval=G_SEND_INTERVAL
+        )
 
     async def delta_set(self, addr, app_index, arguments):
         client = self.elements[0][GenericLevelClient]
         level = -int(arguments['<level>'][2:]) if arguments['<level>'][0:2] == '0-' else int(arguments['<level>'])
-        transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
-        result = await client.delta_set(addr, app_index=app_index,
-                                        delta_level=level,
-                                        transition_time=transition_time,
-                                        send_interval=G_SEND_INTERVAL,
-                                        timeout=G_TIMEOUT)
+        transition_time = float(arguments['--transition']) if arguments['--transition'] else None
+        delay = 0.0 if transition_time is not None else None
+        result = await client.delta_set(
+            addr,
+            app_index=app_index,
+            delta_level=level,
+            delay=delay,
+            transition_time=transition_time,
+            send_interval=G_SEND_INTERVAL,
+            timeout=G_TIMEOUT
+        )
         print(result)
 
     async def delta_set_unack(self, addr, app_index, arguments):
         client = self.elements[0][GenericLevelClient]
         level = -int(arguments['<level>'][2:]) if arguments['<level>'][0:2] == '0-' else int(arguments['<level>'])
-        transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
-        await client.delta_set_unack(addr, app_index=app_index,
-                                     delta_level=level,
-                                     transition_time=transition_time,
-                                     retransmissions=G_UNACK_RETRANSMISSIONS,
-                                     send_interval=G_SEND_INTERVAL)
+        transition_time = float(arguments['--transition']) if arguments['--transition'] else None
+        delay = 0.0 if transition_time is not None else None
+        await client.delta_set_unack(
+            addr,
+            app_index=app_index,
+            delta_level=level,
+            delay=delay,
+            transition_time=transition_time,
+            retransmissions=G_UNACK_RETRANSMISSIONS,
+            send_interval=G_SEND_INTERVAL
+        )
 
     async def move_set(self, addr, app_index, arguments):
         client = self.elements[0][GenericLevelClient]
         level = -int(arguments['<level>'][2:]) if arguments['<level>'][0:2] == '0-' else int(arguments['<level>'])
-        transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
-        result = await client.move_set(addr, app_index=app_index,
-                                       delta_level=level,
-                                       transition_time=transition_time,
-                                       send_interval=G_SEND_INTERVAL,
-                                       timeout=G_TIMEOUT)
+        transition_time = float(arguments['--transition']) if arguments['--transition'] is not None else None
+        delay = 0.0 if transition_time is not None else None
+        result = await client.move_set(
+            addr,
+            app_index=app_index,
+            delta_level=level,
+            delay=delay,
+            transition_time=transition_time,
+            send_interval=G_SEND_INTERVAL,
+            timeout=G_TIMEOUT
+        )
         print(result)
 
     async def move_set_unack(self, addr, app_index, arguments):
         client = self.elements[0][GenericLevelClient]
         level = -int(arguments['<level>'][2:]) if arguments['<level>'][0:2] == '0-' else int(arguments['<level>'])
-        transition_time = float(arguments['--transition']) if arguments['--transition'] else 0.0
-        await client.move_set_unack(addr, app_index=app_index,
-                                    delta_level=level,
-                                    transition_time=transition_time,
-                                    retransmissions=G_UNACK_RETRANSMISSIONS,
-                                    send_interval=G_SEND_INTERVAL)
+        transition_time = float(arguments['--transition']) if arguments['--transition'] is not None else None
+        delay = 0.0 if transition_time is not None else None
+        await client.move_set_unack(
+            addr, app_index=app_index,
+            delta_level=level,
+            delay=delay,
+            transition_time=transition_time,
+            retransmissions=G_UNACK_RETRANSMISSIONS,
+            send_interval=G_SEND_INTERVAL
+        )
 
     async def listen(self, addr, app_index, arguments):
         def receive_status(
@@ -159,7 +186,6 @@ class SampleApplication(Application):
 
         while True:
             await asyncio.sleep(10)
-
 
     async def run(self, addr, app_index, cmd, arguments):
         async with self:
