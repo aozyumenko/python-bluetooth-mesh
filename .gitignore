@@ -110,3 +110,4 @@ venv.bak/
 
 # debug helpers
 examples/start*.sh
+examples/join_ha.py

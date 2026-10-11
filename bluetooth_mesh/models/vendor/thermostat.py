@@ -20,25 +20,29 @@
 #
 #
 """
-This module implements experemental Thermostat mesh models, both clients and servers.
+This module implements experemental Thermostat mesh models,
+both clients and servers.
 """
 
+import asyncio
 from functools import partial
-#from typing import Any, Dict, Iterable, NamedTuple, Optional, Sequence, Tuple, Type
-from typing import Any, Dict, Sequence, Optional
-from enum import IntEnum        # FIXME: for base class only
+from typing import Any, Dict, Optional, Union
+from enum import IntEnum
+from uuid import UUID
 
 from bluetooth_mesh.models.base import Model
+from bluetooth_mesh.messages import AccessMessage
 from bluetooth_mesh.messages.vendor.thermostat import (
     ThermostatOpcode,
     ThermostatSubOpcode,
 )
 
-import asyncio
-from typing import Mapping, Hashable, Callable, Awaitable, Union
-from uuid import UUID
-from bluetooth_mesh.utils import ProgressCallback, ParsedMeshMessage, MessageDescription
-from bluetooth_mesh.messages import AccessMessage
+from bluetooth_mesh.utils import (
+    construct_match,
+    ParsedMeshMessage,
+    MessageDescription
+)
+
 
 __all__ = [
     "ThermostatServer",
@@ -51,10 +55,11 @@ class VendorModel(Model):
     Base class for vendor mesh models.
     """
 
-    def __init__(self, element: "Element"):
-        self.OPCODES = { self.OPCODE };
-        super().__init__(element);
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
 
+        if 'OPCODE' in cls.__dict__:
+            cls.OPCODES = {cls.OPCODE}
 
     def expect_subapp(
         self,
@@ -89,7 +94,10 @@ class VendorModel(Model):
             if destination is not None and (_destination != destination):
                 return False
 
-            if params and not construct_match(message[self.OPCODE.name.lower()][subopcode.name.lower()], params):
+            if params and not construct_match(
+                message[self.OPCODE.name.lower()][subopcode.name.lower()],
+                params
+            ):
                 return False
 
             if not future.done():
@@ -101,9 +109,11 @@ class VendorModel(Model):
 
         return future
 
-
     async def send_subapp(
-        self, destination: int, app_index: int, subopcode: int, params: MessageDescription
+        self, destination: int,
+        app_index: int,
+        subopcode: int,
+        params: MessageDescription
     ):
         """
         Send a vendor specific message using an application key.
@@ -134,7 +144,6 @@ class VendorModel(Model):
         )
 
         await super()._send_app(destination, app_index, data)
-
 
     # implementation of simple client *get command
     async def get_param(
@@ -170,8 +179,11 @@ class VendorModel(Model):
             timeout=timeout,
         )
 
-        return None if isinstance(result, BaseException) else result[status_subopcode.name.lower()]
-
+        return (
+            None
+            if isinstance(result, BaseException)
+            else result[status_subopcode.name.lower()]
+        )
 
     # implementation of simple client *set vendor command
     async def set_param(
@@ -208,8 +220,11 @@ class VendorModel(Model):
             timeout=timeout,
         )
 
-        return None if isinstance(result, BaseException) else result[status_subopcode.name.lower()]
-
+        return (
+            None
+            if isinstance(result, BaseException)
+            else result[status_subopcode.name.lower()]
+        )
 
 
 class ThermostatServer(Model):
